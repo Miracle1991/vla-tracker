@@ -47,14 +47,28 @@ jobs:
 
     - name: Restore weekly history (weeks/*.json)
       run: |
-        if [ -d "prev_pages/weeks" ]; then
-          mkdir -p data/weeks
+        mkdir -p data/weeks
+        # 优先从 prev_pages/weeks 恢复（gh-pages 分支的历史数据）
+        if [ -d "prev_pages/weeks" ] && [ "$(ls -A prev_pages/weeks/*.json 2>/dev/null)" ]; then
           cp -a prev_pages/weeks/*.json data/weeks/ || true
-          echo "Restored week files:"
-          ls -la data/weeks || true
+          echo "✓ Restored week files from prev_pages/weeks:"
+          ls -la data/weeks/ | head -10
         else
-          echo "No previous gh-pages history found (first deploy?)"
+          echo "No previous gh-pages history found in prev_pages/weeks"
         fi
+        # 如果 data/weeks 仍然为空，尝试从 docs/weeks 恢复（如果存在）
+        if [ ! "$(ls -A data/weeks/*.json 2>/dev/null)" ] && [ -d "docs/weeks" ] && [ "$(ls -A docs/weeks/*.json 2>/dev/null)" ]; then
+          echo "data/weeks is empty, trying to restore from docs/weeks..."
+          cp -a docs/weeks/*.json data/weeks/ || true
+          echo "✓ Restored week files from docs/weeks:"
+          ls -la data/weeks/ | head -10
+        fi
+        # 确保 data/weeks 目录存在
+        if [ ! -d "data/weeks" ]; then
+          mkdir -p data/weeks
+        fi
+        echo "Final data/weeks contents:"
+        ls -la data/weeks/ || echo "data/weeks is empty (will be populated by crawler)"
     
     - name: Refresh all weeks since August 2025 (on code update)
       if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.refresh_all == 'true') }}
@@ -88,7 +102,12 @@ jobs:
     
     - name: Generate static HTML
       run: |
+        echo "Checking data before generating static HTML:"
+        ls -la data/weeks/ || echo "data/weeks is empty"
+        echo "Running generate_static.py..."
         python generate_static.py
+        echo "Verifying generated files:"
+        ls -la docs/ || echo "docs directory does not exist"
     
     - name: List docs directory
       run: |
