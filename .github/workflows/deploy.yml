@@ -70,8 +70,20 @@ jobs:
         echo "Final data/weeks contents:"
         ls -la data/weeks/ || echo "data/weeks is empty (will be populated by crawler)"
     
-    - name: Refresh all weeks since August 2025 (on code update)
-      if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.refresh_all == 'true') }}
+    - name: Check if initial deployment (need to refresh all weeks)
+      id: check_initial
+      run: |
+        # 检查 data/weeks 是否有数据
+        if [ -z "$(ls -A data/weeks/*.json 2>/dev/null)" ]; then
+          echo "is_initial=true" >> $GITHUB_OUTPUT
+          echo "首次部署：data/weeks 为空，需要刷新 2025年8月之后的所有周"
+        else
+          echo "is_initial=false" >> $GITHUB_OUTPUT
+          echo "非首次部署：data/weeks 已有数据"
+        fi
+    
+    - name: Refresh all weeks since August 2025 (initial deployment or code update)
+      if: ${{ steps.check_initial.outputs.is_initial == 'true' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.refresh_all == 'true') }}
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
@@ -81,12 +93,16 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        echo "代码更新，刷新 2025年8月之后的所有周的数据..."
+        if [ "${{ steps.check_initial.outputs.is_initial }}" == "true" ]; then
+          echo "首次部署：刷新 2025年8月之后的所有周的数据..."
+        else
+          echo "代码更新：刷新 2025年8月之后的所有周的数据..."
+        fi
         python refresh_weeks.py || echo "刷新失败，但继续执行"
       continue-on-error: true
 
     - name: Update last week (weekly schedule)
-      if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.refresh_all != 'true') }}
+      if: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.refresh_all != 'true')) && steps.check_initial.outputs.is_initial != 'true' }}
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
