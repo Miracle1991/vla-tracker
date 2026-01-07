@@ -209,8 +209,11 @@ def duckduckgo_site_search(query: str, site: str, max_results: int = 10) -> list
     results: list[dict[str, Any]] = []
     
     try:
-        # 每次搜索前等待，避免速率限制
-        time.sleep(2)
+        # 每次搜索前等待，避免速率限制（DuckDuckGo 对单个 IP 有并发限制）
+        # 使用随机延迟，避免固定模式被识别
+        import random
+        delay = 2 + random.uniform(0, 1)  # 2-3 秒随机延迟
+        time.sleep(delay)
         
         with DDGS() as ddgs:
             # DuckDuckGo 搜索，获取最多30条结果
@@ -233,9 +236,9 @@ def duckduckgo_site_search(query: str, site: str, max_results: int = 10) -> list
                         break
     except Exception as e:
         error_msg = str(e)
-        # 如果是速率限制，给出更友好的提示
-        if "Ratelimit" in error_msg or "202" in error_msg:
-            raise SearchError(f"DuckDuckGo 速率限制，请稍后再试。如果持续出现，建议使用 Google API 或 SerpAPI。")
+        # 如果是速率限制，抛出 RateLimitError 以便上层处理
+        if "Ratelimit" in error_msg or "202" in error_msg or "rate limit" in error_msg.lower():
+            raise RateLimitError(f"DuckDuckGo 速率限制: {error_msg}")
         raise SearchError(f"DuckDuckGo 搜索失败: {error_msg}")
     
     return results
@@ -301,8 +304,13 @@ def search_all_sites(
                     print(f"[WARN] Google API 被限流，降级到 DuckDuckGo: {e}")
                     # 继续执行，使用 DuckDuckGo
                     if DDGS is not None:
-                        site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
-                        print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                        try:
+                            site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                            print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                        except RateLimitError as e2:
+                            # DuckDuckGo 也被限流了
+                            print(f"[WARN] DuckDuckGo 也被限流，跳过站点 {site}: {e2}")
+                            continue
                     else:
                         print(f"[WARN] DuckDuckGo 未安装，跳过站点 {site}")
                         continue
@@ -317,11 +325,19 @@ def search_all_sites(
                         except SearchError as e2:
                             print(f"[WARN] SerpAPI 搜索站点 {site} 失败: {e2}")
                             if DDGS is not None:
-                                site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
-                                print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                                try:
+                                    site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                                    print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                                except RateLimitError as e2:
+                                    print(f"[WARN] DuckDuckGo 也被限流，跳过站点 {site}: {e2}")
+                                    continue
                     elif DDGS is not None:
-                        site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
-                        print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                        try:
+                            site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                            print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                        except RateLimitError as e2:
+                            print(f"[WARN] DuckDuckGo 也被限流，跳过站点 {site}: {e2}")
+                            continue
             
             # 优先级 2: 如果 Google 已被限流或未配置，使用 SerpAPI（如果配置了）
             elif use_serpapi:
@@ -332,8 +348,12 @@ def search_all_sites(
                     print(f"[WARN] SerpAPI 搜索站点 {site} 失败: {e}")
                     # 降级到 DuckDuckGo
                     if DDGS is not None:
-                        site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
-                        print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                        try:
+                            site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                            print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                        except RateLimitError as e2:
+                            print(f"[WARN] DuckDuckGo 也被限流，跳过站点 {site}: {e2}")
+                            continue
                     else:
                         print(f"[WARN] DuckDuckGo 未安装，跳过站点 {site}")
                         continue
@@ -343,8 +363,12 @@ def search_all_sites(
                 if DDGS is None:
                     print(f"[WARN] DuckDuckGo 未安装，跳过站点 {site}")
                     continue
-                site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
-                print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                try:
+                    site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                    print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                except RateLimitError as e:
+                    print(f"[WARN] DuckDuckGo 被限流，跳过站点 {site}: {e}")
+                    continue
             
             else:
                 print(f"[WARN] 没有可用的搜索方式，跳过站点 {site}")
