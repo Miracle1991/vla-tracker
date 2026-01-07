@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 import re
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from xml.etree import ElementTree
 
 import requests
@@ -31,15 +32,21 @@ def extract_arxiv_id(url: str) -> Optional[str]:
     return None
 
 
-def get_arxiv_abstract(arxiv_id: str) -> Optional[str]:
+def _clean_arxiv_text(text: str) -> str:
+    text = text.strip()
+    # arXiv API 里的 title/summary 经常带换行与多空格
+    return re.sub(r"\s+", " ", text)
+
+
+def get_arxiv_metadata(arxiv_id: str) -> Tuple[Optional[str], Optional[str]]:
     """
-    使用 arXiv API 获取论文摘要。
+    使用 arXiv API 获取论文标题与摘要。
     
     Args:
         arxiv_id: arXiv 论文 ID，格式如 "2406.09246"
     
     Returns:
-        论文摘要，如果获取失败返回 None
+        (title, abstract)；如果获取失败返回 (None, None)
     """
     try:
         # arXiv API: https://arxiv.org/help/api/user-manual
@@ -47,25 +54,31 @@ def get_arxiv_abstract(arxiv_id: str) -> Optional[str]:
         resp = requests.get(api_url, timeout=10)
         
         if resp.status_code != 200:
-            return None
+            return (None, None)
         
         # 解析 XML 响应
         root = ElementTree.fromstring(resp.content)
         # arXiv API 使用 Atom 格式
         namespace = {"atom": "http://www.w3.org/2005/Atom"}
-        
-        # 查找摘要
-        summary_elem = root.find(".//atom:summary", namespace)
-        if summary_elem is not None and summary_elem.text:
-            # 清理摘要文本（移除换行和多余空格）
-            abstract = summary_elem.text.strip()
-            abstract = re.sub(r"\s+", " ", abstract)  # 将多个空白字符替换为单个空格
-            return abstract
-        
-        return None
+
+        entry = root.find(".//atom:entry", namespace)
+        if entry is None:
+            return (None, None)
+
+        title_elem = entry.find("atom:title", namespace)
+        summary_elem = entry.find("atom:summary", namespace)
+
+        title = _clean_arxiv_text(title_elem.text) if (title_elem is not None and title_elem.text) else None
+        abstract = _clean_arxiv_text(summary_elem.text) if (summary_elem is not None and summary_elem.text) else None
+        return (title, abstract)
     except Exception as e:
-        print(f"[WARN] 获取 arXiv {arxiv_id} 摘要失败: {e}")
-        return None
+        print(f"[WARN] 获取 arXiv {arxiv_id} 元数据失败: {e}")
+        return (None, None)
+
+
+def get_arxiv_abstract(arxiv_id: str) -> Optional[str]:
+    _, abstract = get_arxiv_metadata(arxiv_id)
+    return abstract
 
 
 def translate_to_chinese(text: str) -> Optional[str]:
@@ -153,15 +166,26 @@ def enrich_arxiv_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not url or "arxiv.org" not in url:
             enriched_items.append(item)
             continue
+
+        # 过滤掉非论文页面（例如 arXiv 分类页 / 帮助页等）
+        if extract_arxiv_id(url) is None:
+            # 没有 arXiv ID 的链接很可能不是论文
+            continue
         
         # 提取 arXiv ID
         arxiv_id = extract_arxiv_id(url)
         if not arxiv_id:
             enriched_items.append(item)
             continue
+
+        item["arxiv_id"] = arxiv_id
+
+        # 用 arXiv API 的 title 覆盖搜索结果 title，避免出现 “1 Introduction” 这类网页章节标题
+        title, abstract = get_arxiv_metadata(arxiv_id)
+        if title:
+            item["title"] = title
         
         # 获取摘要
-        abstract = get_arxiv_abstract(arxiv_id)
         if abstract:
             item["abstract"] = abstract
             # 翻译成中文
