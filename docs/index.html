@@ -8,9 +8,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #111827;}
-      header { background: #111827; color: white; padding: 1rem 1.5rem; }
+      header { background: #111827; color: white; padding: 1rem 1.5rem; position: relative; }
       header h1 { margin: 0; font-size: 1.5rem; }
       header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
+      .star-button { position: absolute; top: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem; color: white; text-decoration: none; font-size: 0.9rem; transition: all 0.2s; cursor: pointer; }
+      .star-button:hover { background: #374151; border-color: #4b5563; transform: translateY(-1px); }
+      .star-button:active { transform: translateY(0); }
+      .star-icon { font-size: 1.1rem; }
+      .star-count { font-weight: 500; }
+      @media (max-width: 768px) {
+        .star-button { position: static; margin-top: 0.75rem; display: inline-flex; }
+      }
       .container { display: flex; }
       .sidebar { background: white; padding: 1.5rem 1rem; position: sticky; top: 0; height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; }
       .sidebar-left { width: 180px; border-right: 1px solid #e5e7eb; }
@@ -90,21 +98,67 @@
       window.addEventListener('scroll', updateActiveSite);
       // 页面加载时也更新一次
       window.addEventListener('load', updateActiveSite);
+      
+      // 获取 GitHub star 数量
+      async function fetchStarCount() {
+        try {
+          const response = await fetch('/api/github-stars');
+          if (response.ok) {
+            const data = await response.json();
+            const starCountEl = document.getElementById('starCount');
+            if (starCountEl) {
+              starCountEl.textContent = data.stargazers_count || 0;
+            }
+          } else {
+            const starCountEl = document.getElementById('starCount');
+            if (starCountEl) {
+              starCountEl.textContent = '?';
+            }
+          }
+        } catch (error) {
+          console.error('获取 star 数量失败:', error);
+          const starCountEl = document.getElementById('starCount');
+          if (starCountEl) {
+            starCountEl.textContent = '?';
+          }
+        }
+      }
+      
+      // 处理点赞按钮点击
+      function handleStarClick(event) {
+        // 不阻止默认行为，让链接正常跳转
+        // 按钮已经设置了 href，会直接跳转到 GitHub 仓库页面
+        // 用户可以在 GitHub 页面点击 star 按钮
+      }
+      
+      // 页面加载时获取 star 数量
+      window.addEventListener('load', fetchStarCount);
     </script>
   </head>
   <body>
     <header>
       <h1>VLA 每周追踪</h1>
-      <p>自动聚合来自 知乎 / GitHub / HuggingFace / arXiv 的 VLA 相关更新（专注于机器人、自动驾驶领域，仅显示本周内容）</p>
+      <p>自动聚合来自 知乎 / GitHub / HuggingFace / arXiv 的 VLA 相关更新（专注于机器人、自动驾驶领域）</p>
+      <a href="https://github.com/Miracle1991/vla-tracker" target="_blank" rel="noopener noreferrer" class="star-button" id="starButton" onclick="handleStarClick(event)">
+        <span class="star-icon">⭐</span>
+        <span class="star-text">点赞</span>
+        <span class="star-count" id="starCount">加载中...</span>
+      </a>
     </header>
     <div class="container">
       <aside class="sidebar sidebar-left">
         <h3>来源目录</h3>
         <ul>
-          <li><a href="#zhihu">知乎</a></li>
+          <li><a href="#arxiv">arXiv</a></li>
           <li><a href="#github">GitHub</a></li>
           <li><a href="#huggingface">HuggingFace</a></li>
-          <li><a href="#arxiv">arXiv</a></li>
+          <li><a href="#zhihu">知乎</a></li>
+        </ul>
+        <h3 style="margin-top: 1.5rem;">头部玩家</h3>
+        <ul>
+          
+            <li style="color: #9ca3af; font-size: 0.85rem; padding: 0.5rem 0.75rem;">本周无更新</li>
+          
         </ul>
       </aside>
       <main>
@@ -133,84 +187,6 @@
             <li>
               <a href="2025-12-29.html" class="week-link " data-week="2025-12-29">
                 2025-12-29 ~ 2026-01-04
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-12-22.html" class="week-link " data-week="2025-12-22">
-                2025-12-22 ~ 2025-12-28
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-12-15.html" class="week-link " data-week="2025-12-15">
-                2025-12-15 ~ 2025-12-21
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-12-08.html" class="week-link " data-week="2025-12-08">
-                2025-12-08 ~ 2025-12-14
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-12-01.html" class="week-link " data-week="2025-12-01">
-                2025-12-01 ~ 2025-12-07
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-11-24.html" class="week-link " data-week="2025-11-24">
-                2025-11-24 ~ 2025-11-30
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-11-17.html" class="week-link " data-week="2025-11-17">
-                2025-11-17 ~ 2025-11-23
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-11-10.html" class="week-link " data-week="2025-11-10">
-                2025-11-10 ~ 2025-11-16
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-11-03.html" class="week-link " data-week="2025-11-03">
-                2025-11-03 ~ 2025-11-09
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-10-27.html" class="week-link " data-week="2025-10-27">
-                2025-10-27 ~ 2025-11-02
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-10-20.html" class="week-link " data-week="2025-10-20">
-                2025-10-20 ~ 2025-10-26
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-10-13.html" class="week-link " data-week="2025-10-13">
-                2025-10-13 ~ 2025-10-19
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-10-06.html" class="week-link " data-week="2025-10-06">
-                2025-10-06 ~ 2025-10-12
-              </a>
-            </li>
-          
-            <li>
-              <a href="2025-09-29.html" class="week-link " data-week="2025-09-29">
-                2025-09-29 ~ 2025-10-05
               </a>
             </li>
           
