@@ -77,7 +77,6 @@ def translate_to_chinese(text: str) -> Optional[str]:
     否则，尝试使用 googletrans 库（免费但不稳定）。
     """
     try:
-    try:
         try:
             import config
         except ImportError:
@@ -95,23 +94,20 @@ def translate_to_chinese(text: str) -> Optional[str]:
             return translate_with_google_api(text, api_key)
     except Exception:
         pass  # config 不存在或出错，继续使用 googletrans
-        
-        # 否则尝试使用 googletrans（免费但不稳定）
-        try:
-            from googletrans import Translator
-            translator = Translator()
-            result = translator.translate(text, src="en", dest="zh-cn")
-            if result and result.text:
-                return result.text
-        except ImportError:
-            print("[WARN] googletrans 未安装，跳过翻译。可以运行: pip install googletrans==4.0.0rc1")
-        except Exception as e:
-            print(f"[WARN] 翻译失败: {e}")
-        
-        return None
+    
+    # 否则尝试使用 googletrans（免费但不稳定）
+    try:
+        from googletrans import Translator
+        translator = Translator()
+        result = translator.translate(text, src="en", dest="zh-cn")
+        if result and result.text:
+            return result.text
+    except ImportError:
+        print("[WARN] googletrans 未安装，跳过翻译。可以运行: pip install googletrans==4.0.0rc1")
     except Exception as e:
-        print(f"[WARN] 翻译过程出错: {e}")
-        return None
+        print(f"[WARN] 翻译失败: {e}")
+    
+    return None
 
 
 def translate_with_google_api(text: str, api_key: str) -> Optional[str]:
