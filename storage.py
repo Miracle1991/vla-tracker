@@ -1,0 +1,79 @@
+import json
+import os
+from datetime import datetime
+from typing import Optional, List, Dict
+
+try:
+    import config
+except ImportError:  # fallback to example defaults
+    import config.example as config  # type: ignore
+
+
+def ensure_data_dir() -> str:
+    data_dir = getattr(config, "DATA_DIR", "data")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+
+def _get_daily_filepath(date: datetime) -> str:
+    data_dir = ensure_data_dir()
+    date_str = date.strftime("%Y-%m-%d")
+    return os.path.join(data_dir, f"{date_str}.json")
+
+
+def save_daily_results(date: datetime, results: Dict) -> None:
+    """
+    保存某一天的抓取与总结结果到 JSON 文件。
+    results 建议结构：
+    {
+        "date": "YYYY-MM-DD",
+        "generated_at": "ISO8601",
+        "items": [
+            {
+                "site": "github.com",
+                "title": "...",
+                "url": "...",
+                "snippet": "...",
+                "summary": "...",
+                "published_time": "..."
+            },
+            ...
+        ]
+    }
+    """
+    filepath = _get_daily_filepath(date)
+    ensure_data_dir()
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+
+
+def load_daily_results(date: datetime) -> Optional[Dict]:
+    filepath = _get_daily_filepath(date)
+    if not os.path.exists(filepath):
+        return None
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def list_all_days() -> List[Dict]:
+    """
+    返回所有已存储日期的简要信息，按日期从新到旧排序。
+    """
+    data_dir = ensure_data_dir()
+    if not os.path.exists(data_dir):
+        return []
+
+    days: list[dict] = []
+    for name in os.listdir(data_dir):
+        if not name.endswith(".json"):
+            continue
+        date_str = name[:-5]
+        try:
+            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        days.append({"date_str": date_str, "date": date})
+
+    days.sort(key=lambda x: x["date"], reverse=True)
+    return days
+
