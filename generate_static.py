@@ -50,22 +50,6 @@ def generate_static_html() -> None:
                 except Exception as e:
                     print(f"警告: 读取周 {wk} 的数据失败: {e}")
             
-            # 当前周（最新的周）
-            current_week = weeks[0]["week_key"] if weeks else None
-            
-            # 渲染模板
-            from flask import render_template
-            try:
-                html = render_template(
-                    "index.html",
-                    weeks=weeks,
-                    week_data_map=week_data_map,
-                    current_week=current_week,
-                )
-            except Exception as e:
-                print(f"错误: 渲染模板失败: {e}")
-                raise
-            
             # 创建输出目录
             output_dir = Path("docs")  # GitHub Pages 使用 docs 目录
             output_dir.mkdir(exist_ok=True)
@@ -83,10 +67,41 @@ def generate_static_html() -> None:
             except Exception as e:
                 print(f"警告: 同步周数据失败: {e}")
             
-            # 保存主页面
-            index_path = output_dir / "index.html"
-            index_path.write_text(html, encoding="utf-8")
-            print(f"✓ 生成主页面: {index_path}")
+            # 渲染并保存主页面（首页）
+            from flask import render_template
+            try:
+                current_week = weeks[0]["week_key"] if weeks else None
+                html = render_template(
+                    "index.html",
+                    weeks=weeks,
+                    week_data_map={},
+                    current_week=current_week,
+                )
+                index_path = output_dir / "index.html"
+                index_path.write_text(html, encoding="utf-8")
+                print(f"✓ 生成主页面: {index_path}")
+            except Exception as e:
+                print(f"错误: 渲染主页面失败: {e}")
+                raise
+            
+            # 为每个周生成独立页面
+            for week in weeks:
+                week_key = week["week_key"]
+                week_data = week_data_map.get(week_key, {})
+                
+                try:
+                    html = render_template(
+                        "week.html",
+                        weeks=weeks,
+                        week_data=week_data,
+                        week_label=week["week_label"],
+                        current_week=week_key,
+                    )
+                    week_path = output_dir / f"{week_key}.html"
+                    week_path.write_text(html, encoding="utf-8")
+                    print(f"✓ 生成周页面: {week_path}")
+                except Exception as e:
+                    print(f"警告: 生成周 {week_key} 页面失败: {e}")
             
             # 创建 .nojekyll 文件（告诉 GitHub Pages 不要使用 Jekyll）
             nojekyll_path = output_dir / ".nojekyll"

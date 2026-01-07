@@ -77,10 +77,7 @@ BASE_TEMPLATE = """
       .sidebar a:hover { background: #f3f4f6; color: #111827; }
       .sidebar a.active { background: #111827; color: white; }
       .week-link { font-weight: 500; }
-      main { flex: 1; padding: 1.5rem; max-width: 100%; }
-      .weeks-grid { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
-      .week-column { min-width: 420px; max-width: 520px; flex: 0 0 auto; }
-      .week-header { font-weight: 700; color:#111827; margin: 0 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
+      main { flex: 1; padding: 1.5rem; max-width: 1200px; }
       .date-list { margin-bottom: 1.5rem; }
       .date-pill { display: inline-block; margin: 0.25rem 0.4rem 0.25rem 0; padding: 0.35rem 0.75rem; border-radius: 999px; background: #e5e7eb; font-size: 0.85rem; text-decoration: none; color: #111827; }
       .date-pill.active { background: #111827; color: #f9fafb; }
@@ -102,79 +99,49 @@ BASE_TEMPLATE = """
         .sidebar ul { display: flex; flex-wrap: wrap; gap: 0.5rem; }
         .sidebar li { margin-bottom: 0; }
         main { padding: 1rem; }
-        .weeks-grid { overflow-x: auto; }
-        .week-column { min-width: 85vw; }
       }
     </style>
     <script>
-      // 平滑滚动到锚点
+      // 平滑滚动到锚点（来源目录）
       document.querySelectorAll('.sidebar a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
           e.preventDefault();
-          const href = this.getAttribute('href') || '';
-          const targetId = href.startsWith('#') ? href.substring(1) : '';
-          // 来源目录：定位到“当前周”下的对应站点
-          if (this.dataset && this.dataset.site) {
-            const weekKey = window.__currentWeekKey || '';
-            const perWeekTarget = weekKey ? `${weekKey}-${this.dataset.site}` : '';
-            const el = perWeekTarget ? document.getElementById(perWeekTarget) : null;
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-            }
-            return;
-          }
-
+          const targetId = this.getAttribute('href').substring(1);
           const targetElement = document.getElementById(targetId);
           if (targetElement) {
-            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             // 更新活动状态
-            if (this.classList.contains('week-link')) {
-              document.querySelectorAll('.week-link').forEach(a => a.classList.remove('active'));
-              if (this.dataset && this.dataset.week) {
-                window.__currentWeekKey = this.dataset.week;
-              }
-            } else {
-              document.querySelectorAll('.sidebar a:not(.week-link)').forEach(a => a.classList.remove('active'));
-            }
+            document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => a.classList.remove('active'));
             this.classList.add('active');
           }
         });
       });
       
-      // 根据滚动位置高亮当前周和站点
-      function updateActiveItems() {
-        // 高亮当前周（横向列）
-        const weekCols = document.querySelectorAll('.week-column[id]');
-        const weekLinks = document.querySelectorAll('.week-link');
-        let currentWeek = '';
-
-        // 取离左边界最近的列作为当前周
-        let best = { key: '', dist: Infinity };
-        weekCols.forEach(col => {
-          const rect = col.getBoundingClientRect();
-          const dist = Math.abs(rect.left - 220); // 220: sidebar 宽度附近
-          const key = col.id.replace('week-', '');
-          if (rect.right > 220 && dist < best.dist) {
-            best = { key, dist };
+      // 根据滚动位置高亮当前站点
+      function updateActiveSite() {
+        const cards = document.querySelectorAll('.card[id]');
+        const siteLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+        let currentSite = '';
+        
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          if (rect.top <= 150 && rect.bottom >= 150) {
+            currentSite = card.id;
           }
         });
-        currentWeek = best.key;
-        if (currentWeek) {
-          window.__currentWeekKey = currentWeek;
-        }
-
-        weekLinks.forEach(link => {
+        
+        siteLinks.forEach(link => {
           link.classList.remove('active');
-          if (link.getAttribute('data-week') === currentWeek) {
+          if (link.getAttribute('href') === '#' + currentSite) {
             link.classList.add('active');
           }
         });
       }
       
       // 监听滚动事件
-      window.addEventListener('scroll', updateActiveItems);
+      window.addEventListener('scroll', updateActiveSite);
       // 页面加载时也更新一次
-      window.addEventListener('load', updateActiveItems);
+      window.addEventListener('load', updateActiveSite);
     </script>
   </head>
   <body>
@@ -188,7 +155,7 @@ BASE_TEMPLATE = """
         <ul id="week-timeline">
           {% for week in weeks %}
             <li>
-              <a href="#week-{{ week.week_key }}" class="week-link {% if week.week_key == current_week %}active{% endif %}" data-week="{{ week.week_key }}">
+              <a href="{{ week.week_key }}.html" class="week-link {% if week.week_key == current_week %}active{% endif %}" data-week="{{ week.week_key }}">
                 {{ week.week_label }}
               </a>
             </li>
@@ -196,10 +163,10 @@ BASE_TEMPLATE = """
         </ul>
         <h3 style="margin-top: 2rem;">来源目录</h3>
         <ul>
-          <li><a href="#site" data-site="zhihu">知乎</a></li>
-          <li><a href="#site" data-site="github">GitHub</a></li>
-          <li><a href="#site" data-site="huggingface">HuggingFace</a></li>
-          <li><a href="#site" data-site="arxiv">arXiv</a></li>
+          <li><a href="#zhihu">知乎</a></li>
+          <li><a href="#github">GitHub</a></li>
+          <li><a href="#huggingface">HuggingFace</a></li>
+          <li><a href="#arxiv">arXiv</a></li>
         </ul>
       </aside>
       <main>
@@ -218,50 +185,58 @@ INDEX_TEMPLATE = """
 {% extends "base.html" %}
 {% block content %}
   {% if weeks %}
-    <div class="weeks-grid">
-      {% for week in weeks %}
-        {% set week_data = week_data_map.get(week.week_key, {}) %}
-        <section id="week-{{ week.week_key }}" class="week-column">
-          <div class="week-header">{{ week.week_label }}</div>
-          {% if week_data.get('sites') %}
-            {% for site_block in week_data.get('sites', []) %}
-              {% set site_name = site_block.get('site', 'Unknown') %}
-              {% set site_id = site_name.replace('.', '').lower() %}
-              {% if 'zhihu' in site_id %} {% set site_id = 'zhihu' %} {% endif %}
-              {% if 'github' in site_id %} {% set site_id = 'github' %} {% endif %}
-              {% if 'huggingface' in site_id %} {% set site_id = 'huggingface' %} {% endif %}
-              {% if 'arxiv' in site_id %} {% set site_id = 'arxiv' %} {% endif %}
-              <article class="card" id="{{ week.week_key }}-{{ site_id }}">
-                <h2>{{ site_name }}</h2>
-                <small>{{ site_block.get('site_summary', '') }}</small>
-                {% if site_block.get('items') %}
-                  <ul class="item-list">
-                    {% for item in site_block.get('items', []) %}
-                      <li>
-                        <a href="{{ item.get('url', '#') }}" target="_blank" rel="noopener noreferrer">{{ item.get('title') or item.get('url', '#') }}</a>
-                        {% if site_block.get('site') == 'arxiv.org' and item.get('abstract_zh') %}
-                          <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
-                            <strong style="color:#111827;">摘要：</strong>{{ item.get('abstract_zh') }}
-                          </div>
-                        {% elif item.get('snippet') %}
-                          <div style="font-size:0.85rem;color:#6b7280;">{{ item.get('snippet') }}</div>
-                        {% endif %}
-                      </li>
-                    {% endfor %}
-                  </ul>
-                {% else %}
-                  <p class="empty">该站点本周暂无记录。</p>
-                {% endif %}
-              </article>
-            {% endfor %}
-          {% else %}
-            <p class="empty">本周暂无数据。</p>
-          {% endif %}
-        </section>
-      {% endfor %}
+    <div style="text-align: center; padding: 3rem 1rem;">
+      <h2 style="color: #111827; margin-bottom: 1rem;">VLA 每周追踪</h2>
+      <p style="color: #6b7280; margin-bottom: 2rem;">请从左侧时间线选择要查看的周，或点击下方链接查看最新周：</p>
+      <a href="{{ weeks[0].week_key }}.html" style="display: inline-block; padding: 0.75rem 1.5rem; background: #111827; color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 500;">
+        查看最新周：{{ weeks[0].week_label }}
+      </a>
     </div>
   {% else %}
     <p class="empty">暂时没有抓取到任何数据，请先运行一次 <code>python run_daily.py</code>。</p>
+  {% endif %}
+{% endblock %}
+"""
+
+WEEK_TEMPLATE = """
+{% extends "base.html" %}
+{% block content %}
+  {% if week_data and week_data.get('sites') %}
+    <h2 style="color:#111827;margin-bottom:1.5rem;padding-bottom:0.5rem;border-bottom:2px solid #e5e7eb;">
+      {{ week_label }}
+    </h2>
+    {% for site_block in week_data.get('sites', []) %}
+      {% set site_name = site_block.get('site', 'Unknown') %}
+      {% set site_id = site_name.replace('.', '').lower() %}
+      {% if 'zhihu' in site_id %} {% set site_id = 'zhihu' %} {% endif %}
+      {% if 'github' in site_id %} {% set site_id = 'github' %} {% endif %}
+      {% if 'huggingface' in site_id %} {% set site_id = 'huggingface' %} {% endif %}
+      {% if 'arxiv' in site_id %} {% set site_id = 'arxiv' %} {% endif %}
+      <article class="card" id="{{ site_id }}">
+        <h2>{{ site_name }}</h2>
+        <small>{{ site_block.get('site_summary', '') }}</small>
+        {% if site_block.get('items') %}
+          <ul class="item-list">
+            {% for item in site_block.get('items', []) %}
+              <li>
+                <a href="{{ item.get('url', '#') }}" target="_blank" rel="noopener noreferrer">{{ item.get('title') or item.get('url', '#') }}</a>
+                {% if site_block.get('site') == 'arxiv.org' and item.get('abstract_zh') %}
+                  <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                    <strong style="color:#111827;">摘要：</strong>{{ item.get('abstract_zh') }}
+                  </div>
+                {% elif item.get('snippet') %}
+                  <div style="font-size:0.85rem;color:#6b7280;">{{ item.get('snippet') }}</div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty">该站点本周暂无记录。</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  {% else %}
+    <p class="empty">本周暂无数据。</p>
   {% endif %}
 {% endblock %}
 """
@@ -272,31 +247,21 @@ app.jinja_loader = DictLoader(
     {
         "base.html": BASE_TEMPLATE,
         "index.html": INDEX_TEMPLATE,
+        "week.html": WEEK_TEMPLATE,
     }
 )
 
 
 @app.route("/")
 def index() -> Any:
+    """首页：显示周列表"""
     weeks = _build_week_list()
-
-    week_data_map: dict[str, dict[str, Any]] = {}
-    for week in weeks:
-        wk = week["week_key"]
-        try:
-            dt = datetime.strptime(wk, "%Y-%m-%d")
-            week_data = load_week_results(dt)
-        except Exception:
-            week_data = None
-        if week_data:
-            week_data_map[wk] = week_data
-
     current_week = weeks[0]["week_key"] if weeks else None
     
     return render_template(
         "index.html",
         weeks=weeks,
-        week_data_map=week_data_map,
+        week_data_map={},
         current_week=current_week,
     )
 
@@ -321,14 +286,12 @@ def week_view(week_key: str) -> Any:
         week_data = load_week_results(dt)
     except Exception:
         week_data = None
-    if not week_data:
-        abort(404)
-    week_data_map = {week_key: week_data}
     
     return render_template(
-        "index.html",
+        "week.html",
         weeks=weeks,
-        week_data_map=week_data_map,
+        week_data=week_data or {},
+        week_label=target_week["week_label"],
         current_week=week_key,
     )
 
