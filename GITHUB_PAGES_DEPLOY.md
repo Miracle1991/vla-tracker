@@ -46,12 +46,19 @@ git push origin main
 
 ### 步骤 3：启用 GitHub Pages
 
+**重要**：必须正确配置，否则会显示 README 而不是网站内容！
+
 1. 在仓库页面，点击 **Settings** → **Pages**
 2. 在 **Source** 部分：
    - 选择 **Deploy from a branch**
-   - Branch: 选择 `gh-pages`
-   - Folder: 选择 `/ (root)`
+   - Branch: 选择 `gh-pages`（这是 GitHub Actions 自动创建的）
+   - Folder: 选择 `/ (root)`（不是 `/docs`）
 3. 点击 **Save**
+
+**注意**：
+- 如果看不到 `gh-pages` 分支，先完成步骤 4（触发部署），部署成功后会自动创建
+- 确保选择的是 `gh-pages` 分支，不是 `main` 分支
+- Folder 必须选择 `/ (root)`，因为 GitHub Actions 会将 `docs/` 目录的内容推送到 `gh-pages` 分支的根目录
 
 ### 步骤 4：手动触发首次部署
 

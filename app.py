@@ -35,6 +35,98 @@ def filter_this_week_days(days: list[dict]) -> list[dict]:
     return this_week_days
 
 
+def group_days_by_week(days: list[dict]) -> list[dict]:
+    """按周分组日期，返回周列表"""
+    weeks: dict[str, list[dict]] = {}
+    
+    for day in days:
+        day_date = day.get("date")
+        if not day_date:
+            continue
+        
+        week_start = get_week_start(day_date)
+        week_key = week_start.isoformat()
+        week_end = week_start + timedelta(days=6)
+        
+        if week_key not in weeks:
+            weeks[week_key] = {
+                "week_start": week_start,
+                "week_end": week_end,
+                "week_key": week_key,
+                "week_label": f"{week_start.strftime('%Y-%m-%d')} ~ {week_end.strftime('%Y-%m-%d')}",
+                "days": []
+            }
+        
+        weeks[week_key]["days"].append(day)
+    
+    # 转换为列表并按周开始日期排序（最新的在前）
+    week_list = list(weeks.values())
+    week_list.sort(key=lambda x: x["week_start"], reverse=True)
+    
+    return week_list
+
+
+def aggregate_week_data(week_days: list[dict]) -> dict[str, Any]:
+    """聚合一周的所有数据，按站点分组"""
+    from collections import defaultdict
+    
+    all_items_by_site: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    
+    for day in week_days:
+        date_str = day.get("date_str")
+        if not date_str:
+            continue
+        
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            daily_data = load_daily_results(dt)
+            if not daily_data:
+                continue
+            
+            sites = daily_data.get("sites", [])
+            for site_block in sites:
+                site_name = site_block.get("site", "unknown")
+                items = site_block.get("items", [])
+                all_items_by_site[site_name].extend(items)
+        except Exception as e:
+            print(f"警告: 加载日期 {date_str} 的数据失败: {e}")
+            continue
+    
+    # 按站点组织数据
+    site_summaries: list[dict[str, Any]] = []
+    for site, items in all_items_by_site.items():
+        # 去重（基于 URL）
+        seen_urls = set()
+        unique_items = []
+        for item in items:
+            url = item.get("url", "")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_items.append(item)
+        
+        # 按排名排序
+        if unique_items and "rank" in unique_items[0]:
+            unique_items.sort(key=lambda x: x.get("rank", 999))
+        
+        # 只保留 top 30
+        unique_items = unique_items[:30]
+        
+        summary_text = f"{site} 上本周共发现 {len(unique_items)} 条与 VLA 相关的更新内容。"
+        site_summaries.append({
+            "site": site,
+            "site_summary": summary_text,
+            "items": unique_items,
+        })
+    
+    # 按站点名称排序
+    site_summaries.sort(key=lambda x: x["site"])
+    
+    return {
+        "sites": site_summaries,
+        "generated_at": datetime.utcnow().isoformat(),
+    }
+
+
 BASE_TEMPLATE = """
 <!doctype html>
 <html lang="zh-CN">
@@ -47,7 +139,7 @@ BASE_TEMPLATE = """
       header { background: #111827; color: white; padding: 1rem 1.5rem; }
       header h1 { margin: 0; font-size: 1.5rem; }
       header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
-      .container { display: flex; min-height: calc(100vh - 120px); }
+      .container { display: flex; }
       .sidebar { width: 200px; background: white; padding: 1.5rem 1rem; border-right: 1px solid #e5e7eb; position: sticky; top: 0; height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; }
       .sidebar h3 { margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
       .sidebar ul { list-style: none; padding: 0; margin: 0; }
@@ -55,7 +147,9 @@ BASE_TEMPLATE = """
       .sidebar a { display: block; padding: 0.5rem 0.75rem; color: #374151; text-decoration: none; border-radius: 0.375rem; font-size: 0.9rem; transition: background-color 0.2s; }
       .sidebar a:hover { background: #f3f4f6; color: #111827; }
       .sidebar a.active { background: #111827; color: white; }
-      main { flex: 1; padding: 1.5rem; max-width: 1200px; }
+      .week-link { font-weight: 500; }
+      main { flex: 1; padding: 1.5rem; max-width: 1400px; }
+      .week-section { scroll-margin-top: 2rem; }
       .date-list { margin-bottom: 1.5rem; }
       .date-pill { display: inline-block; margin: 0.25rem 0.4rem 0.25rem 0; padding: 0.35rem 0.75rem; border-radius: 999px; background: #e5e7eb; font-size: 0.85rem; text-decoration: none; color: #111827; }
       .date-pill.active { background: #111827; color: #f9fafb; }
@@ -89,37 +183,61 @@ BASE_TEMPLATE = """
           if (targetElement) {
             targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             // 更新活动状态
-            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            if (this.classList.contains('week-link')) {
+              document.querySelectorAll('.week-link').forEach(a => a.classList.remove('active'));
+            } else {
+              document.querySelectorAll('.sidebar a:not(.week-link)').forEach(a => a.classList.remove('active'));
+            }
             this.classList.add('active');
           }
         });
       });
       
-      // 根据滚动位置高亮当前站点
-      function updateActiveSite() {
+      // 根据滚动位置高亮当前周和站点
+      function updateActiveItems() {
+        // 高亮当前周
+        const weekSections = document.querySelectorAll('.week-section');
+        const weekLinks = document.querySelectorAll('.week-link');
+        let currentWeek = '';
+        
+        weekSections.forEach(section => {
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= 200 && rect.bottom >= 200) {
+            currentWeek = section.id.replace('week-', '');
+          }
+        });
+        
+        weekLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('data-week') === currentWeek) {
+            link.classList.add('active');
+          }
+        });
+        
+        // 高亮当前站点
         const cards = document.querySelectorAll('.card[id]');
-        const sidebarLinks = document.querySelectorAll('.sidebar a[href^="#"]');
-        let currentActive = '';
+        const siteLinks = document.querySelectorAll('.sidebar a[href^="#"]:not(.week-link)');
+        let currentSite = '';
         
         cards.forEach(card => {
           const rect = card.getBoundingClientRect();
           if (rect.top <= 150 && rect.bottom >= 150) {
-            currentActive = card.id;
+            currentSite = card.id;
           }
         });
         
-        sidebarLinks.forEach(link => {
+        siteLinks.forEach(link => {
           link.classList.remove('active');
-          if (link.getAttribute('href') === '#' + currentActive) {
+          if (link.getAttribute('href') === '#' + currentSite) {
             link.classList.add('active');
           }
         });
       }
       
       // 监听滚动事件
-      window.addEventListener('scroll', updateActiveSite);
+      window.addEventListener('scroll', updateActiveItems);
       // 页面加载时也更新一次
-      window.addEventListener('load', updateActiveSite);
+      window.addEventListener('load', updateActiveItems);
     </script>
   </head>
   <body>
@@ -129,7 +247,17 @@ BASE_TEMPLATE = """
     </header>
     <div class="container">
       <aside class="sidebar">
-        <h3>站点目录</h3>
+        <h3>时间线</h3>
+        <ul id="week-timeline">
+          {% for week in weeks %}
+            <li>
+              <a href="#week-{{ week.week_key }}" class="week-link {% if week.week_key == current_week %}active{% endif %}" data-week="{{ week.week_key }}">
+                {{ week.week_label }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+        <h3 style="margin-top: 2rem;">来源目录</h3>
         <ul>
           <li><a href="#zhihu">知乎</a></li>
           <li><a href="#github">GitHub</a></li>
@@ -152,52 +280,54 @@ BASE_TEMPLATE = """
 INDEX_TEMPLATE = """
 {% extends "base.html" %}
 {% block content %}
-  <section class="date-list">
-    {% if days %}
-      {% for d in days %}
-        <a class="date-pill {% if d.date_str == current_date %}active{% endif %}" href="/day/{{ d.date_str }}">{{ d.date_str }}</a>
-      {% endfor %}
-    {% else %}
-      <p class="empty">暂时没有抓取到任何数据，请先运行一次 <code>python run_daily.py</code>。</p>
-    {% endif %}
-  </section>
-
-  {% if summary and summary.get('sites') %}
-    <section>
-      <p style="color:#6b7280;font-size:0.85rem;">生成时间：{{ summary.get('generated_at', 'N/A') }}</p>
-      {% for site_block in summary.get('sites', []) %}
-        {% set site_name = site_block.get('site', 'Unknown') %}
-        {% set site_id = site_name.replace('.', '').lower() %}
-        {% if 'zhihu' in site_id %} {% set site_id = 'zhihu' %} {% endif %}
-        {% if 'github' in site_id %} {% set site_id = 'github' %} {% endif %}
-        {% if 'huggingface' in site_id %} {% set site_id = 'huggingface' %} {% endif %}
-        {% if 'arxiv' in site_id %} {% set site_id = 'arxiv' %} {% endif %}
-        <article class="card" id="{{ site_id }}">
-          <h2>{{ site_name }}</h2>
-          <small>{{ site_block.get('site_summary', '') }}</small>
-          {% if site_block.get('items') %}
-            <ul class="item-list">
-              {% for item in site_block.get('items', []) %}
-                <li>
-                  <a href="{{ item.get('url', '#') }}" target="_blank" rel="noopener noreferrer">{{ item.get('title') or item.get('url', '#') }}</a>
-                  {% if site_block.get('site') == 'arxiv.org' and item.get('abstract_zh') %}
-                    <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
-                      <strong style="color:#111827;">摘要：</strong>{{ item.get('abstract_zh') }}
-                    </div>
-                  {% elif item.get('snippet') %}
-                    <div style="font-size:0.85rem;color:#6b7280;">{{ item.get('snippet') }}</div>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="empty">该站点暂无记录。</p>
-          {% endif %}
-        </article>
-      {% endfor %}
-    </section>
+  {% if weeks %}
+    {% for week in weeks %}
+      <section id="week-{{ week.week_key }}" class="week-section" style="margin-bottom: 1.5rem;">
+        <h2 style="color:#111827;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:2px solid #e5e7eb;">
+          {{ week.week_label }}
+        </h2>
+        
+        {% set week_data = week_data_map.get(week.week_key, {}) %}
+        {% if week_data.get('sites') %}
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+            {% for site_block in week_data.get('sites', []) %}
+              {% set site_name = site_block.get('site', 'Unknown') %}
+              {% set site_id = site_name.replace('.', '').lower() %}
+              {% if 'zhihu' in site_id %} {% set site_id = 'zhihu' %} {% endif %}
+              {% if 'github' in site_id %} {% set site_id = 'github' %} {% endif %}
+              {% if 'huggingface' in site_id %} {% set site_id = 'huggingface' %} {% endif %}
+              {% if 'arxiv' in site_id %} {% set site_id = 'arxiv' %} {% endif %}
+              <article class="card" id="{{ site_id }}">
+                <h2>{{ site_name }}</h2>
+                <small>{{ site_block.get('site_summary', '') }}</small>
+                {% if site_block.get('items') %}
+                  <ul class="item-list">
+                    {% for item in site_block.get('items', []) %}
+                      <li>
+                        <a href="{{ item.get('url', '#') }}" target="_blank" rel="noopener noreferrer">{{ item.get('title') or item.get('url', '#') }}</a>
+                        {% if site_block.get('site') == 'arxiv.org' and item.get('abstract_zh') %}
+                          <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                            <strong style="color:#111827;">摘要：</strong>{{ item.get('abstract_zh') }}
+                          </div>
+                        {% elif item.get('snippet') %}
+                          <div style="font-size:0.85rem;color:#6b7280;">{{ item.get('snippet') }}</div>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="empty">该站点本周暂无记录。</p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="empty">本周暂无数据。</p>
+        {% endif %}
+      </section>
+    {% endfor %}
   {% else %}
-    <p class="empty">请选择一个日期查看详细内容。</p>
+    <p class="empty">暂时没有抓取到任何数据，请先运行一次 <code>python run_daily.py</code>。</p>
   {% endif %}
 {% endblock %}
 """
@@ -215,44 +345,51 @@ app.jinja_loader = DictLoader(
 @app.route("/")
 def index() -> Any:
     all_days = list_all_days()
-    # 只显示本周的数据
-    days = filter_this_week_days(all_days)
-    current_date = days[0]["date_str"] if days else None
-    summary = None
-    if current_date:
-        dt = datetime.strptime(current_date, "%Y-%m-%d")
-        summary = load_daily_results(dt)
+    # 按周分组
+    weeks = group_days_by_week(all_days)
+    
+    # 聚合每周的数据
+    week_data_map: dict[str, dict[str, Any]] = {}
+    for week in weeks:
+        week_data = aggregate_week_data(week["days"])
+        week_data_map[week["week_key"]] = week_data
+    
+    # 当前周（最新的周）
+    current_week = weeks[0]["week_key"] if weeks else None
+    
     return render_template(
         "index.html",
-        days=days,
-        current_date=current_date,
-        summary=summary,
+        weeks=weeks,
+        week_data_map=week_data_map,
+        current_week=current_week,
     )
 
 
-@app.route("/day/<date_str>")
-def day_view(date_str: str) -> Any:
+@app.route("/week/<week_key>")
+def week_view(week_key: str) -> Any:
+    """按周查看"""
     all_days = list_all_days()
-    # 只显示本周的数据
-    days = filter_this_week_days(all_days)
-    try:
-        dt = datetime.strptime(date_str, "%Y-%m-%d")
-    except ValueError:
+    weeks = group_days_by_week(all_days)
+    
+    # 找到对应的周
+    target_week = None
+    for week in weeks:
+        if week["week_key"] == week_key:
+            target_week = week
+            break
+    
+    if not target_week:
         abort(404)
-    # 检查是否是本周的日期
-    today = datetime.utcnow().date()
-    week_start = get_week_start(today)
-    week_end = week_start + timedelta(days=6)
-    if dt.date() < week_start or dt.date() > week_end:
-        abort(404)  # 如果不是本周的日期，返回404
-    summary = load_daily_results(dt)
-    if summary is None:
-        abort(404)
+    
+    # 聚合该周的数据
+    week_data = aggregate_week_data(target_week["days"])
+    week_data_map = {week_key: week_data}
+    
     return render_template(
         "index.html",
-        days=days,
-        current_date=date_str,
-        summary=summary,
+        weeks=weeks,
+        week_data_map=week_data_map,
+        current_week=week_key,
     )
 
 

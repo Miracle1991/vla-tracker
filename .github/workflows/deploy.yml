@@ -46,6 +46,17 @@ jobs:
       run: |
         python generate_static.py
     
+    - name: List docs directory
+      run: |
+        echo "Contents of docs directory:"
+        ls -la docs/ || echo "docs directory does not exist"
+        if [ -f docs/index.html ]; then
+          echo "✓ index.html exists"
+          head -20 docs/index.html
+        else
+          echo "✗ index.html does not exist"
+        fi
+    
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
@@ -54,3 +65,5 @@ jobs:
         cname: false
         keep_files: false
         force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'

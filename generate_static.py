@@ -7,45 +7,45 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from app import app, filter_this_week_days
-from storage import list_all_days, load_daily_results
+from app import app, group_days_by_week, aggregate_week_data
+from storage import list_all_days
 
 
 def generate_static_html() -> None:
     """生成静态 HTML 文件"""
     try:
         with app.app_context():
-            # 获取所有日期
+            # 获取所有日期并按周分组
             try:
                 all_days = list_all_days()
-                days = filter_this_week_days(all_days)
-                print(f"找到 {len(days)} 个本周的日期")
+                from app import group_days_by_week, aggregate_week_data
+                weeks = group_days_by_week(all_days)
+                print(f"找到 {len(weeks)} 个周的数据")
             except Exception as e:
                 print(f"警告: 获取日期列表失败: {e}")
-                days = []
+                weeks = []
             
-            # 生成主页面（最新日期）
-            current_date = days[0]["date_str"] if days else None
-            summary = None
-            if current_date:
+            # 聚合每周的数据
+            week_data_map: dict[str, dict[str, Any]] = {}
+            for week in weeks:
                 try:
-                    dt = datetime.strptime(current_date, "%Y-%m-%d")
-                    summary = load_daily_results(dt)
-                    if summary:
-                        print(f"加载日期 {current_date} 的数据成功")
-                    else:
-                        print(f"警告: 日期 {current_date} 没有数据")
+                    week_data = aggregate_week_data(week["days"])
+                    week_data_map[week["week_key"]] = week_data
+                    print(f"聚合周 {week['week_label']} 的数据: {len(week_data.get('sites', []))} 个站点")
                 except Exception as e:
-                    print(f"警告: 加载数据失败: {e}")
+                    print(f"警告: 聚合周 {week.get('week_key', 'unknown')} 的数据失败: {e}")
+            
+            # 当前周（最新的周）
+            current_week = weeks[0]["week_key"] if weeks else None
             
             # 渲染模板
             from flask import render_template
             try:
                 html = render_template(
                     "index.html",
-                    days=days,
-                    current_date=current_date,
-                    summary=summary,
+                    weeks=weeks,
+                    week_data_map=week_data_map,
+                    current_week=current_week,
                 )
             except Exception as e:
                 print(f"错误: 渲染模板失败: {e}")
