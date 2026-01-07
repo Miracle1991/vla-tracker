@@ -37,7 +37,8 @@ jobs:
         USE_DUCKDUCKGO: "False"
         USE_SERPAPI: "False"
       run: |
-        python run_daily.py
+        python run_daily.py || echo "抓取失败，但继续生成静态页面"
+      continue-on-error: true
     
     - name: Generate static HTML
       run: |
