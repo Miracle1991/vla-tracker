@@ -77,15 +77,24 @@ def translate_to_chinese(text: str) -> Optional[str]:
     否则，尝试使用 googletrans 库（免费但不稳定）。
     """
     try:
+    try:
         try:
             import config
-            
-            # 优先使用 Google Translate API（如果配置了）
-            api_key = getattr(config, "GOOGLE_TRANSLATE_API_KEY", None)
-            if api_key:
-                return translate_with_google_api(text, api_key)
         except ImportError:
-            pass  # config 不存在，继续使用 googletrans
+            try:
+                import config.example as config  # type: ignore
+            except ImportError:
+                # 如果 config 不存在，创建一个虚拟对象
+                class Config:
+                    GOOGLE_TRANSLATE_API_KEY = os.environ.get("GOOGLE_TRANSLATE_API_KEY", None)
+                config = Config()  # type: ignore
+        
+        # 优先使用 Google Translate API（如果配置了）
+        api_key = getattr(config, "GOOGLE_TRANSLATE_API_KEY", None)
+        if api_key:
+            return translate_with_google_api(text, api_key)
+    except Exception:
+        pass  # config 不存在或出错，继续使用 googletrans
         
         # 否则尝试使用 googletrans（免费但不稳定）
         try:

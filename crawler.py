@@ -12,10 +12,25 @@ try:
 except ImportError:
     DDGS = None  # type: ignore
 
+# 尝试导入 config，如果失败则从环境变量创建虚拟 config 对象
 try:
     import config
-except ImportError:  # fallback
-    import config.example as config  # type: ignore
+except ImportError:
+    try:
+        import config.example as config  # type: ignore
+    except ImportError:
+        # 如果 config.example 也不存在，创建一个虚拟的 config 对象
+        class Config:
+            GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
+            GOOGLE_CSE_ID = os.environ.get("GOOGLE_CSE_ID", "")
+            SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "")
+            SEARCH_QUERY = os.environ.get("SEARCH_QUERY", "VLA")
+            TARGET_SITES = ["zhihu.com", "github.com", "huggingface.co", "arxiv.org"]
+            MAX_RESULTS_PER_SITE = int(os.environ.get("MAX_RESULTS_PER_SITE", "10"))
+            USE_DUCKDUCKGO = os.environ.get("USE_DUCKDUCKGO", "False").lower() == "true"
+            USE_SERPAPI = os.environ.get("USE_SERPAPI", "False").lower() == "true"
+        
+        config = Config()  # type: ignore
 
 
 GOOGLE_SEARCH_URL = "https://www.googleapis.com/customsearch/v1"

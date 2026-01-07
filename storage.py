@@ -3,10 +3,18 @@ import os
 from datetime import datetime
 from typing import Optional, List, Dict
 
+# 尝试导入 config，如果失败则从环境变量创建虚拟 config 对象
 try:
     import config
-except ImportError:  # fallback to example defaults
-    import config.example as config  # type: ignore
+except ImportError:
+    try:
+        import config.example as config  # type: ignore
+    except ImportError:
+        # 如果 config.example 也不存在，创建一个虚拟的 config 对象
+        class Config:
+            DATA_DIR = os.environ.get("DATA_DIR", "data")
+        
+        config = Config()  # type: ignore
 
 
 def ensure_data_dir() -> str:
