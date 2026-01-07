@@ -44,7 +44,11 @@ def refresh_weeks_since(since_date: str, sleep: float = 2.0) -> None:
     print(f"将刷新 {len(all_weeks)} 个周的数据（从 {since_week.isoformat()} 到 {current_week.isoformat()}）")
     if all_weeks:
         print(f"周列表: {[wk.isoformat() for wk in all_weeks]}")
+    print()
 
+    completed_count = 0
+    total_count = len(all_weeks)
+    
     for week_start in all_weeks:
         week_end = week_start + timedelta(days=6)
         week_key = week_start.isoformat()
@@ -65,11 +69,18 @@ def refresh_weeks_since(since_date: str, sleep: float = 2.0) -> None:
 
             save_week_results(datetime.combine(week_start, datetime.min.time()), summary)
             total_items = sum(len(site.get("items", [])) for site in summary.get("sites", []))
-            print(f"  ✓ 已保存周 {after_date} ({len(summary.get('sites', []))} 个站点, {total_items} 条记录)")
+            completed_count += 1
+            print(f"  ✓ 已保存周 {after_date} ({len(summary.get('sites', []))} 个站点, {total_items} 条记录) [{completed_count}/{total_count}]")
         else:
-            print(f"  ⚠ 警告: 本周没有抓取到任何数据")
+            completed_count += 1
+            print(f"  ⚠ 警告: 本周没有抓取到任何数据 [{completed_count}/{total_count}]")
 
         time.sleep(sleep)
+    
+    print()
+    print(f"=" * 60)
+    print(f"✓ 所有周的数据刷新完成！共处理 {completed_count}/{total_count} 个周")
+    print(f"=" * 60)
 
 
 if __name__ == "__main__":

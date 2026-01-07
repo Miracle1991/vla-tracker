@@ -98,8 +98,13 @@ jobs:
         else
           echo "代码更新：刷新 2025年8月之后的所有周的数据..."
         fi
-        python refresh_weeks.py || echo "刷新失败，但继续执行"
-      continue-on-error: true
+        echo "开始刷新所有周的数据，这可能需要较长时间..."
+        python refresh_weeks.py
+        echo "✓ 所有周的数据刷新完成"
+        echo "验证数据完整性："
+        ls -la data/weeks/ | wc -l
+        echo "周数据文件数量（包括 . 和 ..）："
+        find data/weeks -name "*.json" | wc -l
 
     - name: Update last week (weekly schedule)
       if: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.refresh_all != 'true')) && steps.check_initial.outputs.is_initial != 'true' }}
@@ -113,17 +118,32 @@ jobs:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         echo "每周一自动更新，更新上一周的内容..."
-        python run_daily.py || echo "更新失败，但继续生成静态页面"
-      continue-on-error: true
+        python run_daily.py
+        echo "✓ 上一周的数据更新完成"
+        echo "验证数据："
+        ls -la data/weeks/ | tail -5
+    
+    - name: Verify data completeness before generating HTML
+      run: |
+        echo "验证数据完整性..."
+        week_count=$(find data/weeks -name "*.json" 2>/dev/null | wc -l)
+        echo "找到 $week_count 个周的数据文件"
+        if [ "$week_count" -eq 0 ]; then
+          echo "⚠ 警告: data/weeks 目录为空，但将继续生成静态 HTML"
+        else
+          echo "✓ 数据验证通过，准备生成静态 HTML"
+        fi
     
     - name: Generate static HTML
       run: |
-        echo "Checking data before generating static HTML:"
-        ls -la data/weeks/ || echo "data/weeks is empty"
-        echo "Running generate_static.py..."
+        echo "所有数据更新完成，开始生成静态 HTML..."
+        echo "数据文件列表："
+        ls -la data/weeks/ | head -10
+        echo "运行 generate_static.py..."
         python generate_static.py
-        echo "Verifying generated files:"
-        ls -la docs/ || echo "docs directory does not exist"
+        echo "✓ 静态 HTML 生成完成"
+        echo "验证生成的文件："
+        ls -la docs/*.html | head -5
     
     - name: List docs directory
       run: |
