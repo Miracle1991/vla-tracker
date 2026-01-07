@@ -38,10 +38,14 @@ def run_once() -> None:
     summary["week_start"] = week_start.isoformat()
     summary["week_end"] = week_end.isoformat()
 
-    save_daily_results(datetime.combine(today, datetime.min.time()), summary)
-    # 同时保存本周聚合结果（供周时间线展示）
-    save_week_results(datetime.combine(week_start, datetime.min.time()), summary)
-    print("Saved daily results.")
+    # 只有当有数据时才保存，避免覆盖已有数据
+    if raw_items:
+        save_daily_results(datetime.combine(today, datetime.min.time()), summary)
+        # 同时保存本周聚合结果（供周时间线展示）
+        save_week_results(datetime.combine(week_start, datetime.min.time()), summary)
+        print(f"Saved daily results ({len(raw_items)} items).")
+    else:
+        print(f"警告: 没有抓取到任何数据，跳过保存（保留已有数据）。")
 
 
 if __name__ == "__main__":
