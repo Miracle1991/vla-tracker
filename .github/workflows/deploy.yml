@@ -5,6 +5,15 @@ on:
     # 每天 UTC 时间 8:00 运行（北京时间 16:00）
     - cron: '0 8 * * *'
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      backfill_weeks:
+        description: '回填历史周数量（0=不回填）'
+        required: false
+        default: '0'
+      since:
+        description: '起始日期 YYYY-MM-DD（留空使用 2025-10-01 或仓库配置）'
+        required: false
+        default: ''
   push:
     branches:
       - main
@@ -59,6 +68,23 @@ jobs:
       run: |
         python run_daily.py || echo "抓取失败，但继续生成静态页面"
       continue-on-error: true
+
+    - name: Backfill weekly data (optional)
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.backfill_weeks != '' && github.event.inputs.backfill_weeks != '0' }}
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
+        SEARCH_QUERY: ${{ secrets.SEARCH_QUERY }}
+        MAX_RESULTS_PER_SITE: ${{ secrets.MAX_RESULTS_PER_SITE }}
+        DATA_DIR: data
+        USE_DUCKDUCKGO: "False"
+        USE_SERPAPI: "False"
+      run: |
+        MAX_WEEKS="${{ github.event.inputs.backfill_weeks }}"
+        SINCE="${{ github.event.inputs.since }}"
+        if [ -z "$SINCE" ]; then SINCE="2025-10-01"; fi
+        echo "Backfilling weeks: $MAX_WEEKS since $SINCE"
+        python backfill_weeks.py --since "$SINCE" --max-weeks "$MAX_WEEKS"
     
     - name: Generate static HTML
       run: |

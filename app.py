@@ -69,11 +69,13 @@ BASE_TEMPLATE = """
       header h1 { margin: 0; font-size: 1.5rem; }
       header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
       .container { display: flex; }
-      .sidebar { width: 200px; background: white; padding: 1.5rem 1rem; border-right: 1px solid #e5e7eb; position: sticky; top: 0; height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; }
+      .sidebar { background: white; padding: 1.5rem 1rem; position: sticky; top: 0; height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; }
+      .sidebar-left { width: 180px; border-right: 1px solid #e5e7eb; }
+      .sidebar-right { width: 280px; border-left: 1px solid #e5e7eb; }
       .sidebar h3 { margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
       .sidebar ul { list-style: none; padding: 0; margin: 0; }
       .sidebar li { margin-bottom: 0.5rem; }
-      .sidebar a { display: block; padding: 0.5rem 0.75rem; color: #374151; text-decoration: none; border-radius: 0.375rem; font-size: 0.9rem; transition: background-color 0.2s; }
+      .sidebar a { display: block; padding: 0.5rem 0.75rem; color: #374151; text-decoration: none; border-radius: 0.375rem; font-size: 0.9rem; transition: background-color 0.2s; white-space: nowrap; }
       .sidebar a:hover { background: #f3f4f6; color: #111827; }
       .sidebar a.active { background: #111827; color: white; }
       .week-link { font-weight: 500; }
@@ -91,14 +93,17 @@ BASE_TEMPLATE = """
       .empty { color: #6b7280; font-size: 0.95rem; }
       footer { text-align: center; padding: 1rem; font-size: 0.75rem; color: #6b7280; }
       @media (max-width: 1024px) {
-        .sidebar { width: 160px; padding: 1rem 0.75rem; }
+        .sidebar-left { width: 140px; padding: 1rem 0.75rem; }
+        .sidebar-right { width: 220px; padding: 1rem 0.75rem; }
       }
       @media (max-width: 768px) {
         .container { flex-direction: column; }
-        .sidebar { width: 100%; position: relative; border-right: none; border-bottom: 1px solid #e5e7eb; max-height: none; }
+        .sidebar { width: 100%; position: relative; border-right: none; border-left: none; border-bottom: 1px solid #e5e7eb; max-height: none; }
+        .sidebar-left { border-right: none; }
+        .sidebar-right { border-left: none; }
         .sidebar ul { display: flex; flex-wrap: wrap; gap: 0.5rem; }
         .sidebar li { margin-bottom: 0; }
-        main { padding: 1rem; }
+        main { padding: 1rem; order: -1; }
       }
     </style>
     <script>
@@ -150,18 +155,8 @@ BASE_TEMPLATE = """
       <p>自动聚合来自 知乎 / GitHub / HuggingFace / arXiv 的 VLA 相关更新（专注于机器人、自动驾驶领域，仅显示本周内容）</p>
     </header>
     <div class="container">
-      <aside class="sidebar">
-        <h3>时间线</h3>
-        <ul id="week-timeline">
-          {% for week in weeks %}
-            <li>
-              <a href="{{ week.week_key }}.html" class="week-link {% if week.week_key == current_week %}active{% endif %}" data-week="{{ week.week_key }}">
-                {{ week.week_label }}
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-        <h3 style="margin-top: 2rem;">来源目录</h3>
+      <aside class="sidebar sidebar-left">
+        <h3>来源目录</h3>
         <ul>
           <li><a href="#zhihu">知乎</a></li>
           <li><a href="#github">GitHub</a></li>
@@ -172,6 +167,18 @@ BASE_TEMPLATE = """
       <main>
         {% block content %}{% endblock %}
       </main>
+      <aside class="sidebar sidebar-right">
+        <h3>时间线</h3>
+        <ul id="week-timeline">
+          {% for week in weeks %}
+            <li>
+              <a href="{{ week.week_key }}.html" class="week-link {% if week.week_key == current_week %}active{% endif %}" data-week="{{ week.week_key }}">
+                {{ week.week_label }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </aside>
     </div>
     <footer>
       数据来源于 Google 搜索结果，仅供学习与研究使用。
@@ -187,7 +194,7 @@ INDEX_TEMPLATE = """
   {% if weeks %}
     <div style="text-align: center; padding: 3rem 1rem;">
       <h2 style="color: #111827; margin-bottom: 1rem;">VLA 每周追踪</h2>
-      <p style="color: #6b7280; margin-bottom: 2rem;">请从左侧时间线选择要查看的周，或点击下方链接查看最新周：</p>
+      <p style="color: #6b7280; margin-bottom: 2rem;">请从右侧时间线选择要查看的周，或点击下方链接查看最新周：</p>
       <a href="{{ weeks[0].week_key }}.html" style="display: inline-block; padding: 0.75rem 1.5rem; background: #111827; color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 500;">
         查看最新周：{{ weeks[0].week_label }}
       </a>

@@ -1,0 +1,570 @@
+
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <title>VLA 每周追踪</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #111827;}
+      header { background: #111827; color: white; padding: 1rem 1.5rem; }
+      header h1 { margin: 0; font-size: 1.5rem; }
+      header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
+      .container { display: flex; }
+      .sidebar { background: white; padding: 1.5rem 1rem; position: sticky; top: 0; height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; }
+      .sidebar-left { width: 180px; border-right: 1px solid #e5e7eb; }
+      .sidebar-right { width: 280px; border-left: 1px solid #e5e7eb; }
+      .sidebar h3 { margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+      .sidebar ul { list-style: none; padding: 0; margin: 0; }
+      .sidebar li { margin-bottom: 0.5rem; }
+      .sidebar a { display: block; padding: 0.5rem 0.75rem; color: #374151; text-decoration: none; border-radius: 0.375rem; font-size: 0.9rem; transition: background-color 0.2s; white-space: nowrap; }
+      .sidebar a:hover { background: #f3f4f6; color: #111827; }
+      .sidebar a.active { background: #111827; color: white; }
+      .week-link { font-weight: 500; }
+      main { flex: 1; padding: 1.5rem; max-width: 1200px; }
+      .date-list { margin-bottom: 1.5rem; }
+      .date-pill { display: inline-block; margin: 0.25rem 0.4rem 0.25rem 0; padding: 0.35rem 0.75rem; border-radius: 999px; background: #e5e7eb; font-size: 0.85rem; text-decoration: none; color: #111827; }
+      .date-pill.active { background: #111827; color: #f9fafb; }
+      .card { background: white; border-radius: 0.75rem; padding: 1.25rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 10px 15px -3px rgba(15,23,42,0.08), 0 4px 6px -2px rgba(15,23,42,0.05); scroll-margin-top: 1rem; }
+      .card h2 { margin-top: 0; font-size: 1.1rem; margin-bottom: 0.4rem; }
+      .card small { color: #6b7280; }
+      .item-list { margin-top: 0.75rem; padding-left: 1.1rem; }
+      .item-list li { margin-bottom: 0.45rem; }
+      .item-list a { color: #2563eb; text-decoration: none; }
+      .item-list a:hover { text-decoration: underline; }
+      .empty { color: #6b7280; font-size: 0.95rem; }
+      footer { text-align: center; padding: 1rem; font-size: 0.75rem; color: #6b7280; }
+      @media (max-width: 1024px) {
+        .sidebar-left { width: 140px; padding: 1rem 0.75rem; }
+        .sidebar-right { width: 220px; padding: 1rem 0.75rem; }
+      }
+      @media (max-width: 768px) {
+        .container { flex-direction: column; }
+        .sidebar { width: 100%; position: relative; border-right: none; border-left: none; border-bottom: 1px solid #e5e7eb; max-height: none; }
+        .sidebar-left { border-right: none; }
+        .sidebar-right { border-left: none; }
+        .sidebar ul { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .sidebar li { margin-bottom: 0; }
+        main { padding: 1rem; order: -1; }
+      }
+    </style>
+    <script>
+      // 平滑滚动到锚点（来源目录）
+      document.querySelectorAll('.sidebar a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const targetId = this.getAttribute('href').substring(1);
+          const targetElement = document.getElementById(targetId);
+          if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 更新活动状态
+            document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => a.classList.remove('active'));
+            this.classList.add('active');
+          }
+        });
+      });
+      
+      // 根据滚动位置高亮当前站点
+      function updateActiveSite() {
+        const cards = document.querySelectorAll('.card[id]');
+        const siteLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+        let currentSite = '';
+        
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          if (rect.top <= 150 && rect.bottom >= 150) {
+            currentSite = card.id;
+          }
+        });
+        
+        siteLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + currentSite) {
+            link.classList.add('active');
+          }
+        });
+      }
+      
+      // 监听滚动事件
+      window.addEventListener('scroll', updateActiveSite);
+      // 页面加载时也更新一次
+      window.addEventListener('load', updateActiveSite);
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1>VLA 每周追踪</h1>
+      <p>自动聚合来自 知乎 / GitHub / HuggingFace / arXiv 的 VLA 相关更新（专注于机器人、自动驾驶领域，仅显示本周内容）</p>
+    </header>
+    <div class="container">
+      <aside class="sidebar sidebar-left">
+        <h3>来源目录</h3>
+        <ul>
+          <li><a href="#zhihu">知乎</a></li>
+          <li><a href="#github">GitHub</a></li>
+          <li><a href="#huggingface">HuggingFace</a></li>
+          <li><a href="#arxiv">arXiv</a></li>
+        </ul>
+      </aside>
+      <main>
+        
+  
+    <h2 style="color:#111827;margin-bottom:1.5rem;padding-bottom:0.5rem;border-bottom:2px solid #e5e7eb;">
+      2026-01-05 ~ 2026-01-11
+    </h2>
+    
+      
+      
+      
+      
+      
+        
+      <article class="card" id="arxiv">
+        <h2>arxiv.org</h2>
+        <small>arxiv.org 上共发现 6 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 6）。</small>
+        
+          <ul class="item-list">
+            
+              <li>
+                <a href="https://arxiv.org/html/2601.03136v1" target="_blank" rel="noopener noreferrer">Limited Linguistic Diversity in Embodied AI Datasets</a>
+                
+                  <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                    <strong style="color:#111827;">摘要：</strong>语言在视觉-语言-动作（VLA）模型中起着至关重要的作用，但用于训练和评估这些系统的数据集的语言特征仍然缺乏记录。在这项工作中，我们对几个广泛使用的 VLA 语料库进行了系统的数据集审核，旨在描述这些数据集实际包含哪些类型的指令以及它们提供了多少语言多样性。我们沿着互补的维度量化教学语言，包括词汇多样性、重复和重叠、语义相似性和句法复杂性。我们的分析表明，许多数据集依赖于高度重复、类似模板的命令，结构变化有限，从而产生了狭窄的指令形式分布。我们将这些发现定位为当前 VLA 训练和评估数据中可用的语言信号的描述性文档，旨在支持更详细的数据集报告、更有原则的数据集选择以及扩大语言覆盖范围的有针对性的管理或增强策略。
+                  </div>
+                
+              </li>
+            
+              <li>
+                <a href="https://arxiv.org/html/2601.03044v1" target="_blank" rel="noopener noreferrer">SOP: A Scalable Online Post-Training System for Vision-Language-Action Models</a>
+                
+                  <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                    <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）模型通过大规模预训练实现了很强的泛化性，但现实世界的部署除了广泛的泛用性之外还需要专家级的任务熟练程度。现有的 VLA 模型的后训练方法通常是离线的、单个机器人的或特定于任务的，限制了有效的策略适应和现实世界交互中的可扩展学习。我们引入了可扩展在线后训练（SOP）系统，该系统可以直接在物理世界中对通用 VLA 模型进行在线、分布式、多任务后训练。SOP 通过闭环架构将执行和学习紧密结合在一起，其中一组机器人不断地将策略经验和人工干预信号传输到集中式云学习器，并异步接收更新的策略。这种设计支持及时的策略修正，通过并行部署扩展经验收集，并在适应过程中保留通用性。SOP 与训练后算法的选择无关；我们用交互式模仿学习（HG-DAgger）和强化学习（RECAP）来实例化它。在一系列现实世界的操作任务中，包括布料折叠、盒子组装和杂货补货，我们表明 SOP 显着提高了大型预训练 VLA 模型的性能，同时保持跨任务的单一共享策略。有效的后期培训可以在现实世界交互的数小时内实现，并且性能与车队中的机器人数量几乎呈线性关系。这些结果表明，将在线学习与车队规模部署紧密结合，有助于在物理世界中实现高效、可靠和可扩展的通用机器人策略的后期培训。
+                  </div>
+                
+              </li>
+            
+              <li>
+                <a href="https://arxiv.org/html/2601.02456v1" target="_blank" rel="noopener noreferrer">InternVLA-A1: Unifying Understanding, Generation and Action for Robotic Manipulation</a>
+                
+                  <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                    <strong style="color:#111827;">摘要：</strong>流行的视觉-语言-动作 (VLA) 模型通常基于多模态大型语言模型 (MLLM) 构建，并在语义理解方面表现出卓越的熟练程度，但它们本质上缺乏推断物理世界动态的能力。因此，最近的方法已经转向世界模型，通常通过视频预测来制定；然而，这些方法常常缺乏语义基础，并且在处理预测错误时表现出脆弱性。为了协同语义理解与动态预测功能，我们提出了 InternVLA-A1。该模型采用统一的 Mixture-of-Transformers 架构，协调三位专家进行场景理解、视觉预见生成和动作执行。这些组件通过统一的屏蔽自注意力机制无缝交互。在 InternVL3 和 Qwen3-VL 的基础上，我们在 2B 和 3B 参数尺度上实例化 InternVLA-A1。我们在跨越 InternData-A1 和 Agibot-World 的混合合成真实数据集上预训练这些模型，覆盖超过 5.33 亿帧。这种混合训练策略有效地利用了合成模拟数据的多样性，同时最大限度地减少了模拟与真实的差距。我们通过 12 个现实世界的机器人任务和模拟基准评估了 InternVLA-A1。它的性能显着优于 pi0 和 GR00T N1.5 等领先模型，在日常任务方面实现了 14.5% 的提升，在动态设置（例如传送带分拣）方面实现了 40%-73.3% 的提升。
+                  </div>
+                
+              </li>
+            
+              <li>
+                <a href="https://arxiv.org/html/2601.02295v1" target="_blank" rel="noopener noreferrer">CycleVLA: Proactive Self-Correcting Vision-Language-Action Models via Subtask Backtracking and Minimum Bayes Risk Decoding</a>
+                
+                  <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                    <strong style="color:#111827;">摘要：</strong>目前机器人故障检测和纠正的工作通常以事后方式进行，仅在故障发生后分析错误并应用纠正。这项工作引入了 CycleVLA，这是一个为视觉-语言-动作模型 (VLA) 配备主动自我纠正功能的系统，能够预测初期故障并在执行过程中完全显现之前进行恢复。CycleVLA 通过集成一个进度感知 VLA（标记最常发生故障的关键子任务转换点）、一个基于 VLM 的故障预测器和规划器（在预测故障时触发子任务回溯）以及一个基于最小贝叶斯风险 (MBR) 解码的测试时间扩展策略来实现这一目标，以提高回溯后的重试成功率。大量实验表明，CycleVLA 可以提高训练有素和训练不足的 VLA 的性能，并且 MBR 可以作为 VLA 的有效零样本测试时间扩展策略。项目页面：https://dannymcy.github.io/cyclevla/
+                  </div>
+                
+              </li>
+            
+              <li>
+                <a href="https://arxiv.org/html/2601.01948v1" target="_blank" rel="noopener noreferrer">Learning Diffusion Policy from Primitive Skills for Robot Manipulation</a>
+                
+                  <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                    <strong style="color:#111827;">摘要：</strong>扩散策略（DP）最近显示出在机器人操作中产生动作的巨大前景。然而，现有的方法通常依赖于全局指令来产生短期控制信号，这可能导致动作生成中的失调。我们推测，被称为细粒度、短视野操作的原始技能，例如“向上移动”和“打开夹具”，为机器人学习提供了更直观、更有效的界面。为了弥补这一差距，我们提出了 SDP，这是一种将可解释的技能学习与条件行动计划相结合的技能条件 DP。SDP 抽象了跨任务的八种可重用的原始技能，并采用视觉语言模型从视觉观察和语言指令中提取离散表示。基于它们，设计了一个轻量级路由器网络，为每个状态分配所需的原始技能，这有助于构建单一技能策略来生成与技能一致的操作。通过将复杂任务分解为一系列原始技能并选择单一技能策略，SDP 可确保不同任务之间的技能行为一致。对两个具有挑战性的模拟基准和现实世界的机器人部署进行的大量实验表明，SDP 始终优于 SOTA 方法，为具有扩散策略的基于技能的机器人学习提供了新的范例。
+                  </div>
+                
+              </li>
+            
+              <li>
+                <a href="https://arxiv.org/html/2601.01743v1" target="_blank" rel="noopener noreferrer">AI Agent Systems: Architectures, Applications, and Evaluation</a>
+                
+                  <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                    <strong style="color:#111827;">摘要：</strong>人工智能代理——将基础模型与推理、规划、记忆和工具使用相结合的系统——正在迅速成为自然语言意图和现实世界计算之间的实用接口。这项调查综合了人工智能代理架构的新兴前景：(i) 审议和推理（例如，思想链式分解、自我反思和验证以及约束感知决策），(ii) 规划和控制（从反应性策略到分层和多步骤规划器），以及 (iii) 工具调用和环境交互（检索、代码执行、API 和多模式感知）。我们将之前的工作组织成一个统一的分类法，涵盖代理组件（策略/LLM核心、内存、世界模型、规划器、工具路由器和评论家）、编排模式（单代理与\多代理；集中与\分散协调）和部署设置（离线分析与\在线交互协助；安全关键与\开放式任务）。我们讨论了关键的设计权衡——延迟与准确性、自主性与可控性、能力与可靠性——并强调了评估如何因非确定性、长期信用分配、工具和环境可变性以及重试和上下文增长等隐性成本而变得复杂。最后，我们总结了测量和基准测试实践（任务套件、人类偏好和效用指标、约束下的成功、稳健性和安全性），并确定了开放的挑战，包括工具操作的验证和护栏、可扩展的内存和上下文管理、代理决策的可解释性以及实际工作负载下的可重复评估。
+                  </div>
+                
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+      
+      
+      
+        
+      
+      
+      <article class="card" id="github">
+        <h2>github.com</h2>
+        <small>github.com 上共发现 3 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 3）。</small>
+        
+          <ul class="item-list">
+            
+              <li>
+                <a href="https://github.com/InternRobotics/InternNav" target="_blank" rel="noopener noreferrer">InternRobotics/InternNav: InternRobotics&#39; open platform for ... - GitHub</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... Modular Support of the Entire Navigation System · Compatibility with Mainstream Simulation Platforms · Comprehensive Datasets, Models and Benchmarks · State of the ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://github.com/topics/computer-use" target="_blank" rel="noopener noreferrer">computer-use · GitHub Topics · GitHub</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">20小时前 ... c go golang hook opencv automation image robot ai mouse window robotgo auto-test rpa computer-use ... [CVPR 2025] Open-source, End-to-end, Vision-Language-Action ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://github.com/zezhishao/DailyArXiv" target="_blank" rel="noopener noreferrer">zezhishao/DailyArXiv: Daily ArXiv Papers. - GitHub</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">21小时前 ... Video diffusion models provide powerful real-world simulators for embodied AI but remain limited in controllability for robotic manipulation. Recent works ...</div>
+                
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+      
+      
+      
+      
+        
+      
+      <article class="card" id="huggingface">
+        <h2>huggingface.co</h2>
+        <small>huggingface.co 上共发现 9 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 9）。</small>
+        
+          <ul class="item-list">
+            
+              <li>
+                <a href="https://huggingface.co/blog/nvidia/generalist-robotpolicy-eval-isaaclab-arena-lerobot" target="_blank" rel="noopener noreferrer">Generalist Robot Policy Evaluation in Simulation with NVIDIA Isaac ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... Developers get access to open-source pre-trained Isaac GR00T N vision language action (VLA) models, physical AI datasets, evaluation frameworks like NVIDIA ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/blog/nvidia/nvidia-cosmos-reason-2-brings-advanced-reasoning" target="_blank" rel="noopener noreferrer">NVIDIA Cosmos Reason 2 Brings Advanced Reasoning To Physical AI</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... ... autonomous vehicle ... Robot planning and reasoning — Act as the brain for deliberate, methodical decision-making in a robot vision language action (VLA) model.</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/InternRobotics/InternVLA-A1-3B" target="_blank" rel="noopener noreferrer">InternRobotics/InternVLA-A1-3B · Hugging Face</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... vision-language-action-model. License: cc-by-nc-sa-4.0. Model card Files Files ... Robotic Manipulation}, author={InternVLA-A1 contributors}, year={2026 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/blog/drmapavone/nvidia-alpamayo" target="_blank" rel="noopener noreferrer">Building Autonomous Vehicles That Reason with the NVIDIA ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... NVIDIA today released Alpamayo, an open ecosystem of models, simulation tools, and datasets to enable development of reasoning-based autonomous vehicle (AV) ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/blog/nvidia-reachy-mini" target="_blank" rel="noopener noreferrer">NVIDIA brings agents to life with DGX Spark and Reachy Mini</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... 6 open reasoning VLA ... We route “action requests” to a ReAct agent that&#39;s allowed to call tools (for example, tools that trigger robot behaviors or fetch ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/spaces?sort=trending&amp;search=vl" target="_blank" rel="noopener noreferrer">Spaces - Hugging Face</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... Vision-Language-Action Models for Autonomous Driving: Past. worldbench 20 days ago · Running. 1. NIM-Qwen-VL-32B-Research.. Benchmarking Qwen-VL-32B reasoning ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/docs/lerobot/peft_training" target="_blank" rel="noopener noreferrer">Parameter efficient fine-tuning with PEFT</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... Install the lerobot[peft] optional package to enable PEFT support. To read about all the possible methods of adaption, please refer to the PEFT docs.</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers?q=joint%20locomotion" target="_blank" rel="noopener noreferrer">Daily Papers - Hugging Face</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">7小时前 ... This paper introduces ByteWrist, a novel highly-flexible and anthropomorphic parallel wrist for robotic manipulation. ... Vision-Language-Action model (VLA) with ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/trending" target="_blank" rel="noopener noreferrer">Trending Papers - Hugging Face</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... GigaBrain-0: A World Model-Powered Vision-Language-Action Model. GigaBrain-0, a VLA foundation model, uses world model-generated data to enhance cross-task ...</div>
+                
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+      
+      
+        
+      
+      
+      
+      <article class="card" id="zhihu">
+        <h2>zhihu.com</h2>
+        <small>zhihu.com 上共发现 21 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 21）。</small>
+        
+          <ul class="item-list">
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991317529092707077" target="_blank" rel="noopener noreferrer">从VLA到VAM ！仅用10%的数据，就能达到基线的最高成功率- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... 这是因为VLA的预训练数据——图像和文本——本质上是静态的，缺乏关于物体如何运动、变形和相互作用的时序信息。 近日，来自mimic robotics ... Robot Control Beyond VLAs.</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1924954577880462953" target="_blank" rel="noopener noreferrer">多模态的对齐方法综述(具身智能篇) - 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... 预训练任务：图像理解的任务是整个vla模型的预训练任务；; 任务完成度评估： 根据当前画面给出当前任务的完成分数；. 强化学习：. recap路线（离线训练）：基于当前画面 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991824344725340168" target="_blank" rel="noopener noreferrer">一个近300篇工作的综述！从“高层规划和低层控制”来看Manipulation ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... PaLM-E 通过机器人具身数据与VLM 目标共训练，实现端到端任务推理；VILA 直接复用GPT-4V 的视觉接地能力，无需微调即可完成操纵规划；RoboBrain、Gemini Robotics 等机器人专用 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991495809959755833" target="_blank" rel="noopener noreferrer">具身智能机器人年度总结，来自英伟达机器人主管- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... 基于VLM的VLA路线，总感觉不太对. VLA指的是Vision-Language-Action（视觉-语言-动作）模型，目前这是机器人大脑的主流范式。 配方也很简单：拿一个预训练好的VLM ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991619628565305220" target="_blank" rel="noopener noreferrer">具身智能要变天？1.98万双臂人形机器人，加速物理AI向科研、工业 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... 还在为数十万元可应用机器人望而却步？还在忍受“不类人、不开放、难协同”的痛点吗？1月5日，VLAI Robotics未来动力团队重磅砸出颠覆性力作——X系列双臂人形上半身机器人， ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991814984485856341" target="_blank" rel="noopener noreferrer">黄仁勋CES放出大杀器：下一代Rubin架构推理成本降10倍- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... ... VLA 模型。 英伟达今日发布了 ... 更多细节信息请参考英伟达官方博客。 参考链接：. https://nvidianews.nvidia.com/news/alpamayo-autonomous-vehicle-development.</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991806838023414805" target="_blank" rel="noopener noreferrer">物理AI的ChatGPT时刻！英伟达“内驱”无人驾驶汽车将至，将于一季度 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... 英伟达在无人驾驶领域迈出关键一步，宣布开源其首个推理VLA (视觉-语言-动作) 模型Alpamayo 1，这一举措旨在加速安全的自动驾驶技术开发。该模型通过类人思维方式处理 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991828074153676948" target="_blank" rel="noopener noreferrer">2026年热门研究课题、计算特点及设备配置探讨- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... 站在2026年的时间节点，学术与科研领域已经从“通用人工智能”全面转向“ 人工智能驱动的科学研究（AI for Science, AI4S）”与“具身智能（Embodied AI）”。</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991633434028839018" target="_blank" rel="noopener noreferrer">盘点｜浙江大学高飞2025 下半年重磅研究成果一览- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">20小时前 ... 工作亮点：针对无人机在复杂环境中“看得懂指令但反应慢、易碰撞”的核心难题，团队提出的VLA-AN框架实现了一个从数据、训练到安全与部署的完整技术闭环。该工作创新性地利用3D ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991829900047426019" target="_blank" rel="noopener noreferrer">NVIDIA 正在构建“开放模型宇宙”：从AI 智能体、物理世界到生命科学 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... Alpamayo 1：首个开放的自动驾驶推理型VLA 模型不仅“会开车”，还能解释“为什么这么开”。 AlpaSim：支持闭环训练的开源仿真框架用于覆盖极端与稀有场景。 1,700+ 小时真实驾驶 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991933061605118042" target="_blank" rel="noopener noreferrer">CES 2026 | NVIDIA 在CES 上展示未来蓝图：NVIDIA Rubin 平台 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">19小时前 ... ... VLA）、仿真蓝图和数据集组合，旨在实现L4 级自动驾驶能力。其中包括：. Alpamayo R1 —— 业界首款用于辅助驾驶的开源VLA 推理模型; AlpaSim —— 一款面向高保真辅助驾驶 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1992017117466350502" target="_blank" rel="noopener noreferrer">Wispr 曝光内部项目：不仅转录文本还执行任务；苹果将推送LLM ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">14小时前 ... ... VLA 视觉-语言-动作模型. Boston Dynamics 与Google DeepMind 宣布达成战略合作，将Gemini Robotics 基础模型引入新一代全电动「Atlas」机器人。该计划旨在利用大规模多 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991851344676548655" target="_blank" rel="noopener noreferrer">CES 2026｜英伟达的机器人和自动驾驶布局- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... Boston Dynamics、Franka Robotics、LEM Surgical、LG Electronics、Neura Robotics和XRlabs在内的全球机器人领军企业，正在基于英伟达Isaac平台和GR00T基础模型开发 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991796519628740316" target="_blank" rel="noopener noreferrer">老黄All in物理AI！最新GPU性能5倍提升，还砸掉了智驾门槛- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... 英伟达还基于Cosmos模型，为各类物理AI应用推出了专用的开源模型与参考蓝图：. Isaac GR00T N1.6：一款专为类人机器人打造的开源视觉-语言-行动（VLA）推理模型。它 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://www.zhihu.com/question/1991576605823299604/answer/1991847293415085552" target="_blank" rel="noopener noreferrer">如何看待英伟达CEO 黄仁勋在2026 CES上的演讲，有哪些信息值得 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... Alpamayo 1：首个开放的自动驾驶推理型VLA 模型，不仅“会开车”，还能解释“为什么这么开”。 AlpaSim：支持闭环训练的开源仿真框架，用于覆盖极端与稀有场景。 1,700+ 小时真实 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991670391337407965" target="_blank" rel="noopener noreferrer">高通推出全套机器人技术组合，助力从家用机器人到全尺寸人型 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... 与此同时，高通也正在与Kuka Robotics就其下一代机器人解决方案展开讨论。 全栈式架构. 根据高通，搭载Dragonwing IQ10的通用型机器人架构，通过将强大的异构边缘计算、边缘AI ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991798142249750725" target="_blank" rel="noopener noreferrer">英伟达发布Rubin架构及系列开源AI模型；腾讯元宝回应AI助手辱骂 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">1天前 ... 在拉斯维加斯举办的CES 上，Boston Dynamics 与Google DeepMind 宣布达成战略合作伙伴关系，旨在将 Gemini Robotics AI 基础模型整合至新一代 Atlas 人形机器人中。 此次合作 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991958279325234495" target="_blank" rel="noopener noreferrer">576起！总融资金额超500亿！融资爆发的背后，中国机器人行业呈现 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">18小时前 ... 2025年，是全球机器人投资继续爆发的一年。 AI 技术与机器人产业的深度融合，更让整个机器人赛道迎来了融资与创新的双重爆发期。从实验室的技术突破到商业化的规模化落地 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991962665610911965" target="_blank" rel="noopener noreferrer">成立两月获数千万元种子轮融资，乐聚、东方精工投的【具脑磐石 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">17小时前 ... 朱森华为公司规划了清晰的技术演进路线图：在未来1-3年内，团队将基于现有视觉语言动作模型（VLA）的工程实践，用一系列脑认知启发机制对其进行系统性“外挂”优化；预计 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1991927537123729892" target="_blank" rel="noopener noreferrer">全球首款1.8nm芯片，来了！ - 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">20小时前 ... 在大语言模型（LLM）性能提升、端到端视频分析、视觉语言动作（VLA）模型中，第三代英特尔酷睿Ultra均有出色的性能表现，在AI推理成本方面也比传统的多芯片CPU和GPU ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://www.zhihu.com/question/1991576605823299604" target="_blank" rel="noopener noreferrer">如何看待英伟达CEO 黄仁勋在2026 CES上的演讲，有哪些信息值得 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2天前 ... 除了造“大脑”，英伟达也在教AI控制“身体”，演讲中另一个值得注意的发布是Alpamayo。 NVIDIA Alpamayo架构. 这是一个开源视觉-语言-动作模型（VLA），专为自动 ...</div>
+                
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+  
+
+      </main>
+      <aside class="sidebar sidebar-right">
+        <h3>时间线</h3>
+        <ul id="week-timeline">
+          
+            <li>
+              <a href="2026-01-05.html" class="week-link active" data-week="2026-01-05">
+                2026-01-05 ~ 2026-01-11
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-29.html" class="week-link " data-week="2025-12-29">
+                2025-12-29 ~ 2026-01-04
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-22.html" class="week-link " data-week="2025-12-22">
+                2025-12-22 ~ 2025-12-28
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-15.html" class="week-link " data-week="2025-12-15">
+                2025-12-15 ~ 2025-12-21
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-08.html" class="week-link " data-week="2025-12-08">
+                2025-12-08 ~ 2025-12-14
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-01.html" class="week-link " data-week="2025-12-01">
+                2025-12-01 ~ 2025-12-07
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-24.html" class="week-link " data-week="2025-11-24">
+                2025-11-24 ~ 2025-11-30
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-17.html" class="week-link " data-week="2025-11-17">
+                2025-11-17 ~ 2025-11-23
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-10.html" class="week-link " data-week="2025-11-10">
+                2025-11-10 ~ 2025-11-16
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-03.html" class="week-link " data-week="2025-11-03">
+                2025-11-03 ~ 2025-11-09
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-27.html" class="week-link " data-week="2025-10-27">
+                2025-10-27 ~ 2025-11-02
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-20.html" class="week-link " data-week="2025-10-20">
+                2025-10-20 ~ 2025-10-26
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-13.html" class="week-link " data-week="2025-10-13">
+                2025-10-13 ~ 2025-10-19
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-06.html" class="week-link " data-week="2025-10-06">
+                2025-10-06 ~ 2025-10-12
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-09-29.html" class="week-link " data-week="2025-09-29">
+                2025-09-29 ~ 2025-10-05
+              </a>
+            </li>
+          
+        </ul>
+      </aside>
+    </div>
+    <footer>
+      数据来源于 Google 搜索结果，仅供学习与研究使用。
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,577 @@
+
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <title>VLA 每周追踪</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #111827;}
+      header { background: #111827; color: white; padding: 1rem 1.5rem; }
+      header h1 { margin: 0; font-size: 1.5rem; }
+      header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
+      .container { display: flex; }
+      .sidebar { background: white; padding: 1.5rem 1rem; position: sticky; top: 0; height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; }
+      .sidebar-left { width: 180px; border-right: 1px solid #e5e7eb; }
+      .sidebar-right { width: 280px; border-left: 1px solid #e5e7eb; }
+      .sidebar h3 { margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+      .sidebar ul { list-style: none; padding: 0; margin: 0; }
+      .sidebar li { margin-bottom: 0.5rem; }
+      .sidebar a { display: block; padding: 0.5rem 0.75rem; color: #374151; text-decoration: none; border-radius: 0.375rem; font-size: 0.9rem; transition: background-color 0.2s; white-space: nowrap; }
+      .sidebar a:hover { background: #f3f4f6; color: #111827; }
+      .sidebar a.active { background: #111827; color: white; }
+      .week-link { font-weight: 500; }
+      main { flex: 1; padding: 1.5rem; max-width: 1200px; }
+      .date-list { margin-bottom: 1.5rem; }
+      .date-pill { display: inline-block; margin: 0.25rem 0.4rem 0.25rem 0; padding: 0.35rem 0.75rem; border-radius: 999px; background: #e5e7eb; font-size: 0.85rem; text-decoration: none; color: #111827; }
+      .date-pill.active { background: #111827; color: #f9fafb; }
+      .card { background: white; border-radius: 0.75rem; padding: 1.25rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 10px 15px -3px rgba(15,23,42,0.08), 0 4px 6px -2px rgba(15,23,42,0.05); scroll-margin-top: 1rem; }
+      .card h2 { margin-top: 0; font-size: 1.1rem; margin-bottom: 0.4rem; }
+      .card small { color: #6b7280; }
+      .item-list { margin-top: 0.75rem; padding-left: 1.1rem; }
+      .item-list li { margin-bottom: 0.45rem; }
+      .item-list a { color: #2563eb; text-decoration: none; }
+      .item-list a:hover { text-decoration: underline; }
+      .empty { color: #6b7280; font-size: 0.95rem; }
+      footer { text-align: center; padding: 1rem; font-size: 0.75rem; color: #6b7280; }
+      @media (max-width: 1024px) {
+        .sidebar-left { width: 140px; padding: 1rem 0.75rem; }
+        .sidebar-right { width: 220px; padding: 1rem 0.75rem; }
+      }
+      @media (max-width: 768px) {
+        .container { flex-direction: column; }
+        .sidebar { width: 100%; position: relative; border-right: none; border-left: none; border-bottom: 1px solid #e5e7eb; max-height: none; }
+        .sidebar-left { border-right: none; }
+        .sidebar-right { border-left: none; }
+        .sidebar ul { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .sidebar li { margin-bottom: 0; }
+        main { padding: 1rem; order: -1; }
+      }
+    </style>
+    <script>
+      // 平滑滚动到锚点（来源目录）
+      document.querySelectorAll('.sidebar a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const targetId = this.getAttribute('href').substring(1);
+          const targetElement = document.getElementById(targetId);
+          if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 更新活动状态
+            document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => a.classList.remove('active'));
+            this.classList.add('active');
+          }
+        });
+      });
+      
+      // 根据滚动位置高亮当前站点
+      function updateActiveSite() {
+        const cards = document.querySelectorAll('.card[id]');
+        const siteLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+        let currentSite = '';
+        
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          if (rect.top <= 150 && rect.bottom >= 150) {
+            currentSite = card.id;
+          }
+        });
+        
+        siteLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + currentSite) {
+            link.classList.add('active');
+          }
+        });
+      }
+      
+      // 监听滚动事件
+      window.addEventListener('scroll', updateActiveSite);
+      // 页面加载时也更新一次
+      window.addEventListener('load', updateActiveSite);
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1>VLA 每周追踪</h1>
+      <p>自动聚合来自 知乎 / GitHub / HuggingFace / arXiv 的 VLA 相关更新（专注于机器人、自动驾驶领域，仅显示本周内容）</p>
+    </header>
+    <div class="container">
+      <aside class="sidebar sidebar-left">
+        <h3>来源目录</h3>
+        <ul>
+          <li><a href="#zhihu">知乎</a></li>
+          <li><a href="#github">GitHub</a></li>
+          <li><a href="#huggingface">HuggingFace</a></li>
+          <li><a href="#arxiv">arXiv</a></li>
+        </ul>
+      </aside>
+      <main>
+        
+  
+    <h2 style="color:#111827;margin-bottom:1.5rem;padding-bottom:0.5rem;border-bottom:2px solid #e5e7eb;">
+      2025-10-06 ~ 2025-10-12
+    </h2>
+    
+      
+      
+      
+        
+      
+      
+      <article class="card" id="github">
+        <h2>github.com</h2>
+        <small>github.com 上共发现 2 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 2）。</small>
+        
+          <ul class="item-list">
+            
+              <li>
+                <a href="https://github.com/yuffish/rebot" target="_blank" rel="noopener noreferrer">yuffish/rebot: [IROS 2025] ReBot: Scaling Robot Learning ... - GitHub</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... VLA finetuning. We recommend converting synthetic videos into RLDS format for compatibility with most VLA training/finetuning pipelines. Please follow the ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://github.com/huggingface/lerobot/issues/2172" target="_blank" rel="noopener noreferrer">Add support for remote GPUs (with async inference!) · Issue #2172 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... In particular, for data collection. This will make robotics dataset generation (significantly) more accessible. I may be able to PR this one, it should be ...</div>
+                
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+      
+      
+      
+      
+        
+      
+      <article class="card" id="huggingface">
+        <h2>huggingface.co</h2>
+        <small>huggingface.co 上共发现 12 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 12）。</small>
+        
+          <ul class="item-list">
+            
+              <li>
+                <a href="https://huggingface.co/docs/lerobot/act" target="_blank" rel="noopener noreferrer">ACT (Action Chunking with Transformers)</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月8日 ... Multiple RGB images (e.g., from wrist cameras, front/top cameras); Current robot joint positions; A latent style variable z (learned during training, set to ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/TrossenRoboticsCommunity/bimanual_widowxai_handover_cube_smolvla" target="_blank" rel="noopener noreferrer">TrossenRoboticsCommunity ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月6日 ... Robotics · LeRobot · Safetensors. TrossenRoboticsCommunity/bimanual-widowxai ... SmolVLA is a compact, efficient vision-language-action model that achieves ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/2510.05681" target="_blank" rel="noopener noreferrer">Paper page - Verifier-free Test-Time Sampling for Vision Language ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月7日 ... Vision-Language-Action models (VLAs) have demonstrated remarkable performance in robot control. However, they remain fundamentally limited in tasks that require ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/2510.06710" target="_blank" rel="noopener noreferrer">Paper page - RLinf-VLA: A Unified and Efficient Framework for VLA+ ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月8日 ... RLinf-VLA is a unified framework for scalable reinforcement learning training of vision-language-action models, offering improved performance and generalization ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/week/2025-W42" target="_blank" rel="noopener noreferrer">Daily Papers - Hugging Face</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月12日 ... InternVLA-M1: A Spatially Guided Vision-Language-Action Framework for Generalist Robot Policy ... Robotic Manipulation Learning with Gaussian Splatting.</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/2510.05213" target="_blank" rel="noopener noreferrer">Paper page - VER: Vision Expert Transformer for Robot Learning via ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月6日 ... Improving Robotic Manipulation with Efficient Geometry-Aware Vision Encoder (2025); Generative Visual Foresight Meets Task-Agnostic Pose Estimation in ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/date/2025-10-09" target="_blank" rel="noopener noreferrer">Daily Papers - Hugging Face</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... WristWorld: Generating Wrist-Views via 4D World Models for Robotic Manipulation · PekingUniversity Peking University · 18 2. Submitted by. Jerrycool. 5 · MLE- ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/nvidia/papers" target="_blank" rel="noopener noreferrer">nvidia (NVIDIA)</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... Generalist Robot Policy Evaluation in Simulation with NVIDIA Isaac Lab ... ThinkAct: Vision-Language-Action Reasoning via Reinforced Visual Latent Planning.</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/ByteDance-Seed/papers" target="_blank" rel="noopener noreferrer">ByteDance-Seed (ByteDance Seed)</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... GR-RL: Going Dexterous and Precise for Long-Horizon Robotic Manipulation ... From Spatial to Actions: Grounding Vision-Language-Action Model in Spatial Foundation ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/docs/lerobot/using_dataset_tools" target="_blank" rel="noopener noreferrer">Using Dataset Tools</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月10日 ... lerobot-edit-dataset is a command-line script for editing datasets. It can be used to delete episodes, split datasets, merge datasets, add features, remove ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/2510.05684" target="_blank" rel="noopener noreferrer">Paper page - D2E: Scaling Vision-Action Pretraining on Desktop ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月13日 ... ... robotics embodied AI tasks. Unlike prior work that remained domain-specific ... Igniting VLMs toward the Embodied Space (2025); F1: A Vision-Language-Action Model ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://huggingface.co/papers/date/2025-10-08" target="_blank" rel="noopener noreferrer">Daily Papers - Hugging Face</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月8日 ... Verifier-free Test-Time Sampling for Vision Language Action Models · kaist-ai KAIST AI · 3. Submitted by. rachneetkaur. 2 · ChartAgent: A Multimodal Agent for ...</div>
+                
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+      
+      
+        
+      
+      
+      
+      <article class="card" id="zhihu">
+        <h2>zhihu.com</h2>
+        <small>zhihu.com 上共发现 30 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 30）。</small>
+        
+          <ul class="item-list">
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1959611213169271780" target="_blank" rel="noopener noreferrer">东京大学、牛津大学等联合发布VLA万字综述：机器人迈向通用智能的 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月10日 ... 当大语言模型（LLM）和视觉语言模型（VLM）的能力不断溢出到机器人领域，一个激动人心的新方向——**视觉-语言-动作（Vision-Language-Action, VLA）**模型，正成为通往通用 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1959551507818063009" target="_blank" rel="noopener noreferrer">VLA的基础模型与大规模训练任务汇总- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... CAST: Counterfactual labels improve instruction following in vision-language-action models ... 本文针对具身智能（Embodied AI）的预训练视觉表征（PVRs，即视觉“基础模型 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960472360328103773" target="_blank" rel="noopener noreferrer">机器人视觉-语言-动作模型：面向实际应用的综述（上） - 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月12日 ... ... Austin 的论文“Vision-Language-Action Models for Robotics: A Review Towards Real-World Applications ... (VLA) 模型最近获得广泛关注。</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960502341036913095" target="_blank" rel="noopener noreferrer">机器人视觉-语言-动作模型：面向实际应用的综述（下） - 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月12日 ... ... Austin 的论文“Vision-Language-Action Models for Robotics: A Review Towards Real-World Applications ... (VLA) 模型最近获得广泛关注。</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960010410448102630" target="_blank" rel="noopener noreferrer">MLA：机器人操作中多模态理解和预测的多感官语言-动作模型- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月13日 ... ... Robotic Manipulation”。 视觉-语言-动作模型(VLA) 通过继承视觉-语言模型(VLM) 并学习动作生成，在机器人操作任务中展现出泛化能力。大多数VLA 模型侧重于解释视觉和 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1959635527834801717" target="_blank" rel="noopener noreferrer">10.9的一篇VLA综述- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... https://arxiv.org/abs/2510.07077 摘要在利用LLM和VLMs推动机器人技术发展的相关研究不断推进的背景下，VLA模型近年来受到了广泛关注。传统上，视觉、语言和动作相关 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960397440948602593" target="_blank" rel="noopener noreferrer">清华大学（深圳）与南洋理工大学提出VLA-RL：用强化学习增强 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... 论文标题: VLA-RL: Towards Masterful and General Robotic Manipulation with Scalable Reinforcement Learning ... 近期的视觉-语言-动作（Vision-Language-Action, VLA）大 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1957679367913183060" target="_blank" rel="noopener noreferrer">MimicDreamer：协调人类和机器人演示，实现可扩展的VLA 训练- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月7日 ... ... 清华大学的论文“MimicDreamer: Aligning Human and Robot Demonstrations for Scalable VLA Training ”。 视觉-语言-动作(VLA) 模型的泛化能力源于多样化的训…</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960999264101601325" target="_blank" rel="noopener noreferrer">光会“看”和“说”还不够，还得会“算”！Tool-Use+强化学习：TIGeR让 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月13日 ... 简单来说，TIGeR让AI从“感觉”变成了“测量+计算”，从而实现从定性感知到定量计算的飞跃。 值得一提的是，最新发布的Gemini Robotics 1.5在技术报告中同样强调了使用Agentic ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1958120066278204166" target="_blank" rel="noopener noreferrer">纯血VLA综述来啦！从VLM到扩散，再到强化学习方案- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... 视觉-语言-动作（Vision Language Action,VLA）模型的出现，标志着通用具身智能迈出了重要一步。传统的机器人系统通常依赖于孤立的感知流水线、人工设计的控制策略，或任务特定 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960269809389396943" target="_blank" rel="noopener noreferrer">专访Yilun Du：基于EBM和视频生成的具身智能研究路线- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... 我们后来提出将这种能量模型的组合方式（compositionality）引入神经网络体系中，并进一步扩展到embodied AI（具身智能）领域。 ... Vision-Language-Action）模型中，希望 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1961074685820266405" target="_blank" rel="noopener noreferrer">南大与腾讯优图联手，VITA-VLA让大模型学会“动手”，机器人操作 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月13日 ... 近年来，将强大的视觉语言模型（VLM）应用于机器人控制，即所谓的视觉语言动作（Vision-Language Action, VLA）模型，已经成为具身智能领域的一大热点。VLM强大的感知 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960768123968915083" target="_blank" rel="noopener noreferrer">RL 将如何提高具身大模型VLA 泛化性？清华大学团队NeurIPS 2025 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月12日 ... 在具身智能领域，视觉- 语言- 动作（VLA）大模型正展现出巨大潜力，但仍面临一个关键挑战：当前主流的有监督微调（SFT）训练方式，往往让模型在遇到新环境或任务时容易出错， ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1958998595425534416" target="_blank" rel="noopener noreferrer">普林斯顿大学最新！VLM2VLA：将VLM 微调为VLA，并避免灾难性遗忘</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月7日 ... 灾难性遗忘问题在机器人控制领域，将视觉语言模型（VLMs）通过机器人遥操作数据微调为视觉语言动作模型（VLAs）是训练通用策略的重要方向。然而，这一过程存在核心矛盾：学习 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1957678075132228940" target="_blank" rel="noopener noreferrer">动作即语言：将VLM 微调为VLA，避免灾难性遗忘- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月7日 ... 25年9月来自普林斯顿大学的论文“Actions as Language: Fine-Tuning VLMs into VLAs Without Catastrophic Forgetting”。 基于机器人遥操作数据对视觉-语言模型(VLM) ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1958983874689339600" target="_blank" rel="noopener noreferrer">具身智能机械臂- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月7日 ... 具身智能机械臂. 2 个月前. 薛定谔的猫. AI Robotics. 关注. 机器人抓取与 ... 经典大模型可以参见《AI-Robot系列-VLA大模型》，虽然当下LLM/VLA概念炒得 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1959905419842524151" target="_blank" rel="noopener noreferrer">TrackVLA++：具身视觉跟踪中的推理增强与记忆持续机制- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月10日 ... 扩展预训练视觉-语言模型（VLMs）以具备动作生成能力的范式，已使VLA模型成为现代具身人工智能（Embodied AI）的核心。该方法在操作任务和导航任务中均取得了显著成功。近年来， ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1958631913184006854" target="_blank" rel="noopener noreferrer">ReflectDrive将有助于理想辅助驾驶安心感提升- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月6日 ... 4.现在vla的难点是在于算力限制，直接输出traj（token数过多）耗时太长，所以 ... Vision-Language-Action Models in Autonomous Driving. 理想的Huimi Wang为项目 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960398768420659702" target="_blank" rel="noopener noreferrer">清华&amp;UC伯克利提出iRe-VLA：迭代式强化学习，让机器人大模型 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... ... Vision-Language-Action, VLA）模型。 简单来说，VLA模型是当前机器人领域的热点，它能理解人类的语言指令，并根据看到的场景直接输出控制动作。但想让它通过与环境的 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1961002446152274742" target="_blank" rel="noopener noreferrer">有臂有手还带主动视觉？全球首款桌面级灵巧手机械臂BeingBeyond ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月13日 ... D1不仅拥有强大的硬件能力，更搭载自研VLA大模型Being-H0，覆盖从数据采集、模型训练到部署落地的完整链条，开箱即用，开源灵活，为科研人员提供一站式、低门槛的具身智能研究 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960271796453512110" target="_blank" rel="noopener noreferrer">专访Xue Bin(Jason) Peng：探索人形机器人全身运控的通用控制器 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... 他的导师——Michiel van de Panne、Pieter Abbeel和Sergey Levine，分别是角色动画（Character Animation）和机器人强化学习（Robotics + RL）领域最具影响力的顶尖教授。</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1958123535022158847" target="_blank" rel="noopener noreferrer">关注重要的事情：以目标-智体为中心的视觉-语言-动作模型Token 化 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... 25年9月来自英国UCL 和高通公司研究院的论文“Focusing on What Matters: Object-Agent-centric Tokenization for Vision Language Action Models”。</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1958979502467155727" target="_blank" rel="noopener noreferrer">[arxiv-cs.IR] 汇总-2025.10.06-计算机视觉论文- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月7日 ... ... VLA 模型. Work Zones challenge VLM Trajectory Planning: Toward Mitigation and Robust Autonomous Driving. 中文翻译：工区对VLM 轨迹规划的挑战：缓解和鲁棒自动 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1959550348978020780" target="_blank" rel="noopener noreferrer">中科院自动化！EmbodiedCoder：生成模型的参数化具身移动操作 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月9日 ... 一、研究背景在机器人领域，让机器人在复杂、非结构化环境中像人类一样熟练完成多样化任务，是长期核心目标。近年来，视觉-语言-动作（VLA）模型通过端到端映射感官输入与 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960055119463809841" target="_blank" rel="noopener noreferrer">[arxiv-cs.IR] 汇总-2025.10.10-计算机视觉论文- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月10日 ... 自动驾驶与具身智能(Autonomous Driving and Embodied AI). ResAD: Normalized ... Team Xiaomi EV-AD VLA: Learning to Navigate Socially Through Proactive ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960997435238228008" target="_blank" rel="noopener noreferrer">台大×斯坦福重磅发布DexMan：单目视频直驱人形机器人双手绝技 ...</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月13日 ... 单目RGB视频如何教学机器人？日常操作需要机器人协调多臂与多指，但Behavior Cloning 与RL 在高维空间面临数据稀缺与样本低效问题。直接模仿人类视频虽可扩展， ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960300773666718757" target="_blank" rel="noopener noreferrer">谷歌放大招：Gemini Robotics-ER 1.5上线！ - 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... 调用合适的工具，控制机械臂的硬件。启动专门的“抓东西”AI模型。使用“看图说话+动作控制”的VLA模型来精准操作。整个过程一气呵成， ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1957451081517863295" target="_blank" rel="noopener noreferrer">从自我为中心的视频构建视觉-语言-行动模型- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月6日 ... 25年9月来自日本京都大学、日本国立信息研究院、日本东京科学院和日本索尼公司的论文“Developing Vision-Language-Action Model from Egocentric Videos”。</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960985367961405160" target="_blank" rel="noopener noreferrer">CV计算机视觉每日开源代码Paper with code速览-2025.10.13 - 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月13日 ... 【具身智能】Pixel Motion Diffusion is What We Need for Robot Control ... VLA、深度估计、动作识别、表情识别、三维重建、点云3D检测、医学图像分割、医学 ...</div>
+                
+              </li>
+            
+              <li>
+                <a href="https://zhuanlan.zhihu.com/p/1960367589864739600" target="_blank" rel="noopener noreferrer">NovaFlow：从生成视频到机器人操作的零样本转换- 知乎</a>
+                
+                  <div style="font-size:0.85rem;color:#6b7280;">2025年10月11日 ... 机器人领域的长期目标是构建通用机器人，使其能在非结构化环境中执行各类操作任务，且无需针对特定任务训练。许多研究者认为，VLA模型有望实现这种泛化能力——这一观点源于LLMs ...</div>
+                
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+  
+
+      </main>
+      <aside class="sidebar sidebar-right">
+        <h3>时间线</h3>
+        <ul id="week-timeline">
+          
+            <li>
+              <a href="2026-01-05.html" class="week-link " data-week="2026-01-05">
+                2026-01-05 ~ 2026-01-11
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-29.html" class="week-link " data-week="2025-12-29">
+                2025-12-29 ~ 2026-01-04
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-22.html" class="week-link " data-week="2025-12-22">
+                2025-12-22 ~ 2025-12-28
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-15.html" class="week-link " data-week="2025-12-15">
+                2025-12-15 ~ 2025-12-21
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-08.html" class="week-link " data-week="2025-12-08">
+                2025-12-08 ~ 2025-12-14
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-01.html" class="week-link " data-week="2025-12-01">
+                2025-12-01 ~ 2025-12-07
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-24.html" class="week-link " data-week="2025-11-24">
+                2025-11-24 ~ 2025-11-30
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-17.html" class="week-link " data-week="2025-11-17">
+                2025-11-17 ~ 2025-11-23
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-10.html" class="week-link " data-week="2025-11-10">
+                2025-11-10 ~ 2025-11-16
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-03.html" class="week-link " data-week="2025-11-03">
+                2025-11-03 ~ 2025-11-09
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-27.html" class="week-link " data-week="2025-10-27">
+                2025-10-27 ~ 2025-11-02
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-20.html" class="week-link " data-week="2025-10-20">
+                2025-10-20 ~ 2025-10-26
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-13.html" class="week-link " data-week="2025-10-13">
+                2025-10-13 ~ 2025-10-19
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-06.html" class="week-link active" data-week="2025-10-06">
+                2025-10-06 ~ 2025-10-12
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-09-29.html" class="week-link " data-week="2025-09-29">
+                2025-09-29 ~ 2025-10-05
+              </a>
+            </li>
+          
+        </ul>
+      </aside>
+    </div>
+    <footer>
+      数据来源于 Google 搜索结果，仅供学习与研究使用。
+    </footer>
+  </body>
+</html>
