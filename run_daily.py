@@ -6,6 +6,11 @@ from crawler import search_all_sites
 from summarizer import simple_group_and_summarize
 from storage import save_daily_results
 
+try:
+    import config
+except ImportError:
+    import config.example as config  # type: ignore
+
 
 def get_week_start(date: datetime.date) -> datetime.date:
     """获取本周的开始日期（周一）"""
@@ -15,12 +20,12 @@ def get_week_start(date: datetime.date) -> datetime.date:
 
 def run_once() -> None:
     today = datetime.utcnow().date()
-    week_start = get_week_start(today)
     print(f"Running daily VLA tracker for {today.isoformat()} ...")
-    print(f"只抓取本周（{week_start.isoformat()} 之后）的内容")
+    start_date = getattr(config, "START_DATE", "2025-10-01")
+    print(f"只抓取从 {start_date} 开始的内容")
 
-    # 只搜索本周的内容
-    raw_items = search_all_sites(after_date=week_start.isoformat())
+    # 只搜索从起始日期开始的内容
+    raw_items = search_all_sites(after_date=start_date)
     print(f"Fetched {len(raw_items)} raw items.")
 
     summary = simple_group_and_summarize(raw_items)

@@ -20,6 +20,9 @@ SEARCH_QUERY = os.environ.get(
     '(VLA OR "vision language action") AND (robot OR robotics OR "autonomous driving" OR "self-driving" OR "autonomous vehicle" OR "robotic manipulation" OR "embodied AI" OR "robot control")'
 )
 
+# 只抓取从该日期开始的内容（含该月），格式 YYYY-MM-DD
+START_DATE = os.environ.get("START_DATE", "2025-10-01")
+
 # 重点关注站点，Google 查询中会自动加上 site:xxx 过滤
 TARGET_SITES = [
     "zhihu.com",
