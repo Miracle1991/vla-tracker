@@ -41,7 +41,13 @@ class SearchError(Exception):
     pass
 
 
-def google_site_search(query: str, site: str, max_results: int = 10, after_date: str | None = None) -> list[dict[str, Any]]:
+def google_site_search(
+    query: str,
+    site: str,
+    max_results: int = 10,
+    after_date: str | None = None,
+    before_date: str | None = None,
+) -> list[dict[str, Any]]:
     """
     使用 Google Custom Search API 针对单个站点搜索。
     注意：需要在 config.py 中配置 GOOGLE_API_KEY 与 GOOGLE_CSE_ID。
@@ -59,8 +65,11 @@ def google_site_search(query: str, site: str, max_results: int = 10, after_date:
 
     q = f"{query} site:{site}"
     if after_date:
-        # Google搜索支持 after: 参数来过滤日期
+        # Google 搜索支持 after: 参数来过滤日期
         q = f"{q} after:{after_date}"
+    if before_date:
+        # Google 搜索支持 before: 参数来过滤日期
+        q = f"{q} before:{before_date}"
     
     # Google API 每次最多返回10条，需要分页获取
     max_results = min(max_results, 30)  # 限制最多30条
@@ -225,7 +234,11 @@ def duckduckgo_site_search(query: str, site: str, max_results: int = 10) -> list
 
 
 def search_all_sites(
-    query: str | None = None, target_sites: list[str] | None = None, max_results_per_site: int | None = None, after_date: str | None = None
+    query: str | None = None,
+    target_sites: list[str] | None = None,
+    max_results_per_site: int | None = None,
+    after_date: str | None = None,
+    before_date: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     统一的搜索入口，会按配置决定使用 Google、SerpAPI 还是 DuckDuckGo。
@@ -241,6 +254,7 @@ def search_all_sites(
         target_sites: 目标站点列表
         max_results_per_site: 每个站点最大结果数
         after_date: 可选，格式为 "YYYY-MM-DD"，只搜索此日期之后的内容（仅对Google搜索有效）
+        before_date: 可选，格式为 "YYYY-MM-DD"，只搜索此日期之前的内容（仅对Google搜索有效）
     """
     if query is None:
         query = getattr(config, "SEARCH_QUERY", "VLA")
@@ -260,7 +274,13 @@ def search_all_sites(
             elif use_serpapi:
                 site_results = serpapi_site_search(query, site, max_results=max_results_per_site)
             else:
-                site_results = google_site_search(query, site, max_results=max_results_per_site, after_date=after_date)
+                site_results = google_site_search(
+                    query,
+                    site,
+                    max_results=max_results_per_site,
+                    after_date=after_date,
+                    before_date=before_date,
+                )
             
             print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果")
         except SearchError as e:

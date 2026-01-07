@@ -18,6 +18,13 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+
+    - name: Checkout gh-pages (for history)
+      uses: actions/checkout@v3
+      continue-on-error: true
+      with:
+        ref: gh-pages
+        path: prev_pages
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -28,6 +35,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+
+    - name: Restore weekly history (weeks/*.json)
+      run: |
+        if [ -d "prev_pages/weeks" ]; then
+          mkdir -p data/weeks
+          cp -a prev_pages/weeks/*.json data/weeks/ || true
+          echo "Restored week files:"
+          ls -la data/weeks || true
+        else
+          echo "No previous gh-pages history found (first deploy?)"
+        fi
     
     - name: Run daily crawler
       env:
@@ -56,6 +74,9 @@ jobs:
         else
           echo "✗ index.html does not exist"
         fi
+        echo "---"
+        echo "Contents of docs/weeks (if any):"
+        ls -la docs/weeks/ || true
     
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3

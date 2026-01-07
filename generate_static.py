@@ -4,36 +4,51 @@
 from __future__ import annotations
 
 import os
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
-from app import app, group_days_by_week, aggregate_week_data
-from storage import list_all_days
+from app import app
+from storage import list_all_weeks, load_week_results
 
 
 def generate_static_html() -> None:
     """生成静态 HTML 文件"""
     try:
         with app.app_context():
-            # 获取所有日期并按周分组
+            # 获取所有周数据
             try:
-                all_days = list_all_days()
-                from app import group_days_by_week, aggregate_week_data
-                weeks = group_days_by_week(all_days)
-                print(f"找到 {len(weeks)} 个周的数据")
+                weeks_meta = list_all_weeks()
+                weeks = []
+                for w in weeks_meta:
+                    week_start = w["week_start"]
+                    week_end = week_start + timedelta(days=6)
+                    week_key = w["week_key"]
+                    weeks.append(
+                        {
+                            "week_key": week_key,
+                            "week_start": week_start,
+                            "week_end": week_end,
+                            "week_label": f"{week_start.strftime('%Y-%m-%d')} ~ {week_end.strftime('%Y-%m-%d')}",
+                        }
+                    )
+                print(f"找到 {len(weeks)} 个周的数据（来自 data/weeks/）")
             except Exception as e:
-                print(f"警告: 获取日期列表失败: {e}")
+                print(f"警告: 获取周列表失败: {e}")
                 weeks = []
             
-            # 聚合每周的数据
+            # 读取每周的数据
             week_data_map: dict[str, dict[str, Any]] = {}
             for week in weeks:
+                wk = week["week_key"]
                 try:
-                    week_data = aggregate_week_data(week["days"])
-                    week_data_map[week["week_key"]] = week_data
-                    print(f"聚合周 {week['week_label']} 的数据: {len(week_data.get('sites', []))} 个站点")
+                    dt = datetime.strptime(wk, "%Y-%m-%d")
+                    week_data = load_week_results(dt)
+                    if week_data:
+                        week_data_map[wk] = week_data
                 except Exception as e:
-                    print(f"警告: 聚合周 {week.get('week_key', 'unknown')} 的数据失败: {e}")
+                    print(f"警告: 读取周 {wk} 的数据失败: {e}")
             
             # 当前周（最新的周）
             current_week = weeks[0]["week_key"] if weeks else None
@@ -55,6 +70,18 @@ def generate_static_html() -> None:
             output_dir = Path("docs")  # GitHub Pages 使用 docs 目录
             output_dir.mkdir(exist_ok=True)
             print(f"输出目录: {output_dir.absolute()}")
+
+            # 同步周数据到 docs/weeks（用于 Pages 持久化历史周数据）
+            try:
+                data_weeks_dir = Path("data") / "weeks"
+                out_weeks_dir = output_dir / "weeks"
+                out_weeks_dir.mkdir(parents=True, exist_ok=True)
+                if data_weeks_dir.exists():
+                    for p in data_weeks_dir.glob("*.json"):
+                        shutil.copy2(p, out_weeks_dir / p.name)
+                print(f"✓ 同步周数据到: {out_weeks_dir}")
+            except Exception as e:
+                print(f"警告: 同步周数据失败: {e}")
             
             # 保存主页面
             index_path = output_dir / "index.html"
