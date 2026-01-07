@@ -67,6 +67,16 @@ def generate_static_html() -> None:
             except Exception as e:
                 print(f"警告: 同步周数据失败: {e}")
             
+            # 获取 GitHub 仓库 URL（用于点赞按钮）
+            try:
+                import config
+                repo_owner = getattr(config, "GITHUB_REPO_OWNER", "Miracle1991")
+                repo_name = getattr(config, "GITHUB_REPO_NAME", "vla-tracker")
+            except (ImportError, AttributeError):
+                repo_owner = os.environ.get("GITHUB_REPO_OWNER", "Miracle1991")
+                repo_name = os.environ.get("GITHUB_REPO_NAME", "vla-tracker")
+            github_repo_url = f"https://github.com/{repo_owner}/{repo_name}"
+            
             # 渲染并保存主页面（首页）
             from flask import render_template
             try:
@@ -76,6 +86,7 @@ def generate_static_html() -> None:
                     weeks=weeks,
                     week_data_map={},
                     current_week=current_week,
+                    github_repo_url=github_repo_url,
                 )
                 index_path = output_dir / "index.html"
                 index_path.write_text(html, encoding="utf-8")
@@ -96,6 +107,7 @@ def generate_static_html() -> None:
                         week_data=week_data,
                         week_label=week["week_label"],
                         current_week=week_key,
+                        github_repo_url=github_repo_url,
                     )
                     week_path = output_dir / f"{week_key}.html"
                     week_path.write_text(html, encoding="utf-8")

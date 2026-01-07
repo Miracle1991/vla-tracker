@@ -9,10 +9,20 @@ import requests
 
 from storage import list_all_weeks, load_week_results
 
+# 尝试导入 config，如果失败则从环境变量创建虚拟 config 对象
 try:
     import config
 except ImportError:
-    import config.example as config  # type: ignore
+    try:
+        import config.example as config  # type: ignore
+    except ImportError:
+        # 如果 config.example 也不存在，创建一个虚拟的 config 对象
+        import os
+        class Config:
+            GITHUB_REPO_OWNER = os.environ.get("GITHUB_REPO_OWNER", "Miracle1991")
+            GITHUB_REPO_NAME = os.environ.get("GITHUB_REPO_NAME", "vla-tracker")
+        
+        config = Config()  # type: ignore
 
 # 用于定时任务触发数据更新
 try:
