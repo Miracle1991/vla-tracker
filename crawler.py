@@ -41,6 +41,11 @@ class SearchError(Exception):
     pass
 
 
+class RateLimitError(SearchError):
+    """API 限流错误"""
+    pass
+
+
 def google_site_search(
     query: str,
     site: str,
@@ -91,6 +96,9 @@ def google_site_search(
         }
 
         resp = requests.get(GOOGLE_SEARCH_URL, params=params, timeout=20)
+        if resp.status_code == 429:
+            # 限流错误，抛出 RateLimitError 以便降级到 DuckDuckGo
+            raise RateLimitError(f"Google API 限流: {resp.status_code} {resp.text}")
         if resp.status_code != 200:
             raise SearchError(f"Google API 请求失败: {resp.status_code} {resp.text}")
 
@@ -241,13 +249,14 @@ def search_all_sites(
     before_date: str | None = None,
 ) -> list[dict[str, Any]]:
     """
-    统一的搜索入口，会按配置决定使用 Google、SerpAPI 还是 DuckDuckGo。
+    统一的搜索入口，优先使用 Google，如果被限流则降级到 DuckDuckGo。
     返回合并后的结果列表。
     
     搜索方式优先级：
-    1. 如果 USE_DUCKDUCKGO=True，使用 DuckDuckGo（推荐，无需 API key）
-    2. 如果 USE_SERPAPI=True，使用 SerpAPI
-    3. 否则使用 Google Custom Search API
+    1. 优先使用 Google Custom Search API
+    2. 如果 Google 被限流（429），自动降级到 DuckDuckGo
+    3. 如果 USE_SERPAPI=True，使用 SerpAPI（优先级高于 DuckDuckGo）
+    4. 如果 USE_DUCKDUCKGO=True 且未配置 Google，直接使用 DuckDuckGo
     
     Args:
         query: 搜索关键词
@@ -263,26 +272,84 @@ def search_all_sites(
     if max_results_per_site is None:
         max_results_per_site = int(getattr(config, "MAX_RESULTS_PER_SITE", 10))
 
-    use_duckduckgo = bool(getattr(config, "USE_DUCKDUCKGO", True))  # 默认使用 DuckDuckGo
     use_serpapi = bool(getattr(config, "USE_SERPAPI", False))
+    use_duckduckgo = bool(getattr(config, "USE_DUCKDUCKGO", False))
+    # 检查是否配置了 Google API
+    has_google = bool(getattr(config, "GOOGLE_API_KEY", None) and getattr(config, "GOOGLE_CSE_ID", None))
 
     all_results: list[dict[str, Any]] = []
+    google_rate_limited = False  # 标记 Google 是否被限流
+    
     for idx, site in enumerate(target_sites):
+        site_results: list[dict[str, Any]] = []
+        
         try:
-            if use_duckduckgo:
-                site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
-            elif use_serpapi:
-                site_results = serpapi_site_search(query, site, max_results=max_results_per_site)
-            else:
-                site_results = google_site_search(
-                    query,
-                    site,
-                    max_results=max_results_per_site,
-                    after_date=after_date,
-                    before_date=before_date,
-                )
+            # 优先级 1: 如果配置了 Google 且未被限流，优先使用 Google
+            if has_google and not google_rate_limited:
+                try:
+                    site_results = google_site_search(
+                        query,
+                        site,
+                        max_results=max_results_per_site,
+                        after_date=after_date,
+                        before_date=before_date,
+                    )
+                    print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (Google)")
+                except RateLimitError as e:
+                    # Google 被限流，标记并降级到 DuckDuckGo
+                    google_rate_limited = True
+                    print(f"[WARN] Google API 被限流，降级到 DuckDuckGo: {e}")
+                    # 继续执行，使用 DuckDuckGo
+                    if DDGS is not None:
+                        site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                        print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                    else:
+                        print(f"[WARN] DuckDuckGo 未安装，跳过站点 {site}")
+                        continue
+                except SearchError as e:
+                    # 其他 Google 错误，打印警告但继续尝试其他方法
+                    print(f"[WARN] Google 搜索站点 {site} 失败: {e}")
+                    # 继续尝试其他方法
+                    if use_serpapi:
+                        try:
+                            site_results = serpapi_site_search(query, site, max_results=max_results_per_site)
+                            print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (SerpAPI)")
+                        except SearchError as e2:
+                            print(f"[WARN] SerpAPI 搜索站点 {site} 失败: {e2}")
+                            if DDGS is not None:
+                                site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                                print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                    elif DDGS is not None:
+                        site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                        print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
             
-            print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果")
+            # 优先级 2: 如果 Google 已被限流或未配置，使用 SerpAPI（如果配置了）
+            elif use_serpapi:
+                try:
+                    site_results = serpapi_site_search(query, site, max_results=max_results_per_site)
+                    print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (SerpAPI)")
+                except SearchError as e:
+                    print(f"[WARN] SerpAPI 搜索站点 {site} 失败: {e}")
+                    # 降级到 DuckDuckGo
+                    if DDGS is not None:
+                        site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                        print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+                    else:
+                        print(f"[WARN] DuckDuckGo 未安装，跳过站点 {site}")
+                        continue
+            
+            # 优先级 3: 使用 DuckDuckGo
+            elif use_duckduckgo or DDGS is not None:
+                if DDGS is None:
+                    print(f"[WARN] DuckDuckGo 未安装，跳过站点 {site}")
+                    continue
+                site_results = duckduckgo_site_search(query, site, max_results=max_results_per_site)
+                print(f"[INFO] 站点 {site}: 找到 {len(site_results)} 条结果 (DuckDuckGo)")
+            
+            else:
+                print(f"[WARN] 没有可用的搜索方式，跳过站点 {site}")
+                continue
+                
         except SearchError as e:
             # 打印错误，跳过该站点
             print(f"[WARN] 搜索站点 {site} 失败: {e}")

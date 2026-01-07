@@ -1,9 +1,10 @@
 import os
 
-# 搜索方式选择（三选一）：
-# 1. USE_DUCKDUCKGO=True：使用 DuckDuckGo（推荐，无需 API key，完全免费）
-# 2. USE_SERPAPI=True：使用 SerpAPI（需要 API key）
-# 3. 两者都为 False：使用 Google Custom Search API（需要 API key 和 CSE ID）
+# 搜索方式配置：
+# 1. 优先使用 Google Custom Search API（需要 API key 和 CSE ID）
+# 2. 如果 Google 被限流，自动降级到 DuckDuckGo（无需 API key，完全免费）
+# 3. USE_SERPAPI=True：使用 SerpAPI（需要 API key，优先级高于 DuckDuckGo）
+# 4. USE_DUCKDUCKGO=True：强制使用 DuckDuckGo（不推荐，除非 Google 不可用）
 
 # 从环境变量读取配置（用于生产环境），如果没有则使用默认值
 USE_DUCKDUCKGO = os.environ.get("USE_DUCKDUCKGO", "False").lower() == "true"
