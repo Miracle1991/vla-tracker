@@ -65,10 +65,21 @@ def refresh_weeks_since(since_date: str, sleep: float = 2.0) -> None:
 
     completed_count = 0
     total_count = len(all_weeks)
+    skipped_count = 0
     
     for week_start in all_weeks:
         week_end = week_start + timedelta(days=6)
         week_key = week_start.isoformat()
+
+        # 检查是否已有数据（仅检查是否有内容，不检查文件是否存在）
+        existing = load_week_results(datetime.combine(week_start, datetime.min.time()))
+        if existing and existing.get("sites"):
+            total_items = sum(len(site.get("items", [])) for site in existing.get("sites", []))
+            if total_items > 0:
+                skipped_count += 1
+                print(f"\n跳过 {week_key} ~ {week_end.isoformat()}: 已有数据 ({len(existing.get('sites', []))} 个站点, {total_items} 条记录)")
+                completed_count += 1
+                continue  # 跳过已有内容的周
 
         print(f"\n刷新 {week_key} ~ {week_end.isoformat()} ...")
 
@@ -96,7 +107,7 @@ def refresh_weeks_since(since_date: str, sleep: float = 2.0) -> None:
     
     print()
     print(f"=" * 60)
-    print(f"✓ 所有周的数据刷新完成！共处理 {completed_count}/{total_count} 个周")
+    print(f"✓ 所有周的数据处理完成！共处理 {completed_count}/{total_count} 个周（跳过 {skipped_count} 个已有内容的周）")
     print(f"=" * 60)
 
 

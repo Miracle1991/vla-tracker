@@ -53,7 +53,14 @@ def run_once() -> None:
     print(f"Running weekly VLA tracker for {today.isoformat()} ...")
     print(f"更新周：{week_start.isoformat()} ~ {week_end.isoformat()}")
 
-    # 直接搜索并更新上一周的数据（不检查是否已有数据，强制更新）
+    # 检查是否已有数据（如果已有内容，则跳过刷新以节省 API 调用）
+    existing = load_week_results(datetime.combine(week_start, datetime.min.time()))
+    if existing and existing.get("sites"):
+        total_items = sum(len(site.get("items", [])) for site in existing.get("sites", []))
+        if total_items > 0:
+            print(f"✓ 该周已有数据 ({len(existing.get('sites', []))} 个站点, {total_items} 条记录)，跳过刷新")
+            return  # 已有内容，跳过刷新
+    
     print(f"开始搜索并更新上一周的数据...")
     
     after_date = week_start.isoformat()
