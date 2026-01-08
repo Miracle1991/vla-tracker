@@ -38,13 +38,14 @@ def get_week_start(d: date) -> date:
     return d - timedelta(days=d.weekday())  # Monday
 
 
-def refresh_weeks_since(since_date: str, sleep: float = 2.0) -> None:
+def refresh_weeks_since(since_date: str, sleep: float = 2.0, skip_if_all_exist: bool = True) -> None:
     """
     刷新指定日期之后的所有周的数据（强制重新抓取）。
     
     Args:
         since_date: 起始日期，格式 "YYYY-MM-DD"
         sleep: 每个周之间的延迟（秒）
+        skip_if_all_exist: 如果所有周都有数据，是否跳过整个刷新过程（默认 True，节省资源）
     """
     since_dt = datetime.strptime(since_date, "%Y-%m-%d").date()
     since_week = get_week_start(since_dt)
@@ -58,10 +59,34 @@ def refresh_weeks_since(since_date: str, sleep: float = 2.0) -> None:
         all_weeks.append(w)
         w = w + timedelta(days=7)
 
-    print(f"将刷新 {len(all_weeks)} 个周的数据（从 {since_week.isoformat()} 到 {current_week.isoformat()}）")
+    print(f"将检查 {len(all_weeks)} 个周的数据（从 {since_week.isoformat()} 到 {current_week.isoformat()}）")
     if all_weeks:
         print(f"周列表: {[wk.isoformat() for wk in all_weeks]}")
     print()
+
+    # 如果启用了 skip_if_all_exist，先快速检查是否所有周都有数据
+    if skip_if_all_exist and all_weeks:
+        print("快速检查：验证是否所有周都有数据...")
+        weeks_need_refresh = []
+        for week_start in all_weeks:
+            existing = load_week_results(datetime.combine(week_start, datetime.min.time()))
+            if existing and existing.get("sites"):
+                total_items = sum(len(site.get("items", [])) for site in existing.get("sites", []))
+                if total_items == 0:
+                    weeks_need_refresh.append(week_start)
+            else:
+                weeks_need_refresh.append(week_start)
+        
+        if not weeks_need_refresh:
+            print("✓ 所有周都有数据，跳过刷新以节省 API 调用")
+            print(f"=" * 60)
+            print(f"✓ 共检查 {len(all_weeks)} 个周，全部已有数据，无需刷新")
+            print(f"=" * 60)
+            return
+        
+        # 只处理需要刷新的周
+        all_weeks = weeks_need_refresh
+        print(f"发现 {len(all_weeks)} 个周需要刷新：{[wk.isoformat() for wk in all_weeks]}")
 
     completed_count = 0
     total_count = len(all_weeks)
@@ -107,7 +132,10 @@ def refresh_weeks_since(since_date: str, sleep: float = 2.0) -> None:
     
     print()
     print(f"=" * 60)
-    print(f"✓ 所有周的数据处理完成！共处理 {completed_count}/{total_count} 个周（跳过 {skipped_count} 个已有内容的周）")
+    if skipped_count > 0:
+        print(f"✓ 所有周的数据处理完成！共处理 {completed_count}/{total_count} 个周（跳过 {skipped_count} 个已有内容的周）")
+    else:
+        print(f"✓ 所有周的数据刷新完成！共处理 {completed_count}/{total_count} 个周")
     print(f"=" * 60)
 
 

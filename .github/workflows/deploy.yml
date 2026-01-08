@@ -96,11 +96,11 @@ jobs:
         if [ "${{ steps.check_initial.outputs.is_initial }}" == "true" ]; then
           echo "首次部署：刷新 2025年8月之后的所有周的数据..."
         else
-          echo "代码更新：刷新 2025年8月之后的所有周的数据..."
+          echo "代码更新：检查并刷新需要更新的周（如果所有周都有数据，将跳过刷新以节省 API 配额）..."
         fi
-        echo "开始刷新所有周的数据，这可能需要较长时间..."
+        echo "开始检查并刷新周数据（仅刷新缺少数据的周）..."
         python refresh_weeks.py
-        echo "✓ 所有周的数据刷新完成"
+        echo "✓ 周数据检查/刷新完成"
         echo "验证数据完整性："
         ls -la data/weeks/ | wc -l
         echo "周数据文件数量（包括 . 和 ..）："
