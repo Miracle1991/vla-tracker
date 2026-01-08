@@ -77,12 +77,14 @@ BASE_TEMPLATE = """
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8">
-    <title>VLA 每周追踪</title>
+    <title>VLA 每周追踪 · 每周自动更新</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #111827;}
       header { background: #111827; color: white; padding: 1rem 1.5rem; position: relative; }
-      header h1 { margin: 0; font-size: 1.5rem; }
+      header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+      header .auto-update-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.65rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 999px; font-size: 0.75rem; font-weight: 500; color: white; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); }
+      header .auto-update-badge::before { content: '🔄'; font-size: 0.7rem; }
       header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
       .star-button { position: absolute; top: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem; color: white; text-decoration: none; font-size: 0.9rem; transition: all 0.2s; cursor: pointer; }
       .star-button:hover { background: #374151; border-color: #4b5563; transform: translateY(-1px); }
@@ -210,7 +212,10 @@ BASE_TEMPLATE = """
   </head>
   <body>
     <header>
-      <h1>VLA 每周追踪</h1>
+      <h1>
+        VLA 每周追踪
+        <span class="auto-update-badge">每周自动更新</span>
+      </h1>
       <p>自动聚合来自 知乎 / GitHub / HuggingFace / arXiv 的 VLA 相关更新（专注于机器人、自动驾驶领域）</p>
       <a href="{{ github_repo_url }}" target="_blank" rel="noopener noreferrer" class="star-button" id="starButton" onclick="handleStarClick(event)">
         <span class="star-icon">⭐</span>
@@ -275,7 +280,13 @@ INDEX_TEMPLATE = """
 {% block content %}
   {% if weeks %}
     <div style="text-align: center; padding: 3rem 1rem;">
-      <h2 style="color: #111827; margin-bottom: 1rem;">VLA 每周追踪</h2>
+      <h2 style="color: #111827; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+        VLA 每周追踪
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.65rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 999px; font-size: 0.75rem; font-weight: 500; color: white; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
+          <span>🔄</span>
+          每周自动更新
+        </span>
+      </h2>
       <p style="color: #6b7280; margin-bottom: 2rem;">请从右侧时间线选择要查看的周，或点击下方链接查看最新周：</p>
       <a href="{{ weeks[0].week_key }}.html" style="display: inline-block; padding: 0.75rem 1.5rem; background: #111827; color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 500;">
         查看最新周：{{ weeks[0].week_label }}
