@@ -1,0 +1,2078 @@
+
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <title>VLA 每周追踪 · 每周自动更新</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #111827;}
+      header { background: #111827; color: white; padding: 1rem 1.5rem; position: relative; }
+      header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+      header .auto-update-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.65rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 999px; font-size: 0.75rem; font-weight: 500; color: white; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); }
+      header .auto-update-badge::before { content: '🔄'; font-size: 0.7rem; }
+      header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
+      .star-button { position: absolute; top: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem; color: white; text-decoration: none; font-size: 0.9rem; transition: all 0.2s; cursor: pointer; }
+      .star-button:hover { background: #374151; border-color: #4b5563; transform: translateY(-1px); }
+      .star-button:active { transform: translateY(0); }
+      .star-icon { font-size: 1.1rem; }
+      .star-count { font-weight: 500; }
+      @media (max-width: 768px) {
+        .star-button { position: static; margin-top: 0.75rem; display: inline-flex; }
+      }
+      .container { display: flex; }
+      .sidebar { background: white; padding: 1.5rem 1rem; position: sticky; top: 0; height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; }
+      .sidebar-left { width: 180px; border-right: 1px solid #e5e7eb; }
+      .sidebar-right { width: 280px; border-left: 1px solid #e5e7eb; }
+      .sidebar h3 { margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+      .sidebar ul { list-style: none; padding: 0; margin: 0; }
+      .sidebar li { margin-bottom: 0.5rem; }
+      .sidebar a { display: block; padding: 0.5rem 0.75rem; color: #374151; text-decoration: none; border-radius: 0.375rem; font-size: 0.9rem; transition: background-color 0.2s; white-space: nowrap; }
+      .sidebar a:hover { background: #f3f4f6; color: #111827; }
+      .sidebar a.active { background: #111827; color: white; }
+      .week-link { font-weight: 500; }
+      main { flex: 1; padding: 1.5rem; max-width: 1200px; }
+      .date-list { margin-bottom: 1.5rem; }
+      .date-pill { display: inline-block; margin: 0.25rem 0.4rem 0.25rem 0; padding: 0.35rem 0.75rem; border-radius: 999px; background: #e5e7eb; font-size: 0.85rem; text-decoration: none; color: #111827; }
+      .date-pill.active { background: #111827; color: #f9fafb; }
+      .card { background: white; border-radius: 0.75rem; padding: 1.25rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 10px 15px -3px rgba(15,23,42,0.08), 0 4px 6px -2px rgba(15,23,42,0.05); scroll-margin-top: 1rem; }
+      .card h2 { margin-top: 0; font-size: 1.1rem; margin-bottom: 0.4rem; }
+      .card small { color: #6b7280; }
+      .item-list { margin-top: 0.75rem; padding-left: 1.1rem; }
+      .item-list li { margin-bottom: 0.45rem; }
+      .item-list a { color: #2563eb; text-decoration: none; }
+      .item-list a:hover { text-decoration: underline; }
+      .empty { color: #6b7280; font-size: 0.95rem; }
+      footer { text-align: center; padding: 1rem; font-size: 0.75rem; color: #6b7280; }
+      @media (max-width: 1024px) {
+        .sidebar-left { width: 140px; padding: 1rem 0.75rem; }
+        .sidebar-right { width: 220px; padding: 1rem 0.75rem; }
+      }
+      @media (max-width: 768px) {
+        .container { flex-direction: column; }
+        .sidebar { width: 100%; position: relative; border-right: none; border-left: none; border-bottom: 1px solid #e5e7eb; max-height: none; }
+        .sidebar-left { border-right: none; }
+        .sidebar-right { border-left: none; }
+        .sidebar ul { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .sidebar li { margin-bottom: 0; }
+        main { padding: 1rem; order: -1; }
+      }
+    </style>
+    <script>
+      // 平滑滚动到锚点（来源目录）
+      document.querySelectorAll('.sidebar a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const targetId = this.getAttribute('href').substring(1);
+          const targetElement = document.getElementById(targetId);
+          if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 更新活动状态
+            document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => a.classList.remove('active'));
+            this.classList.add('active');
+          }
+        });
+      });
+      
+      // 根据滚动位置高亮当前站点
+      function updateActiveSite() {
+        const cards = document.querySelectorAll('.card[id]');
+        const siteLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+        let currentSite = '';
+        
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          if (rect.top <= 150 && rect.bottom >= 150) {
+            currentSite = card.id;
+          }
+        });
+        
+        siteLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + currentSite) {
+            link.classList.add('active');
+          }
+        });
+      }
+      
+      // 监听滚动事件
+      window.addEventListener('scroll', updateActiveSite);
+      // 页面加载时也更新一次
+      window.addEventListener('load', updateActiveSite);
+      
+      // 获取 GitHub star 数量
+      async function fetchStarCount() {
+        try {
+          const response = await fetch('/api/github-stars');
+          if (response.ok) {
+            const data = await response.json();
+            const starCountEl = document.getElementById('starCount');
+            if (starCountEl) {
+              starCountEl.textContent = data.stargazers_count || 0;
+            }
+          } else {
+            const starCountEl = document.getElementById('starCount');
+            if (starCountEl) {
+              starCountEl.textContent = '?';
+            }
+          }
+        } catch (error) {
+          console.error('获取 star 数量失败:', error);
+          const starCountEl = document.getElementById('starCount');
+          if (starCountEl) {
+            starCountEl.textContent = '?';
+          }
+        }
+      }
+      
+      // 处理点赞按钮点击
+      function handleStarClick(event) {
+        // 不阻止默认行为，让链接正常跳转
+        // 按钮已经设置了 href，会直接跳转到 GitHub 仓库页面
+        // 用户可以在 GitHub 页面点击 star 按钮
+      }
+      
+      // 页面加载时获取 star 数量
+      window.addEventListener('load', fetchStarCount);
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1>
+        VLA 每周追踪
+        <span class="auto-update-badge">每周自动更新</span>
+      </h1>
+      <p>自动聚合来自 知乎 / GitHub / HuggingFace / arXiv 的 VLA 相关更新（专注于机器人、自动驾驶领域）</p>
+      <a href="https://github.com/Miracle1991/vla-tracker" target="_blank" rel="noopener noreferrer" class="star-button" id="starButton" onclick="handleStarClick(event)">
+        <span class="star-icon">⭐</span>
+        <span class="star-text">点赞</span>
+        <span class="star-count" id="starCount">加载中...</span>
+      </a>
+    </header>
+    <div class="container">
+      <aside class="sidebar sidebar-left">
+        <h3>来源目录</h3>
+        <ul>
+          <li><a href="#arxiv">arXiv</a></li>
+          <li><a href="#github">GitHub</a></li>
+          <li><a href="#huggingface">HuggingFace</a></li>
+          <li><a href="#zhihu">知乎</a></li>
+        </ul>
+        <h3 style="margin-top: 1.5rem;">头部玩家</h3>
+        <ul>
+          
+            
+            
+              
+            
+              
+                
+              
+            
+              
+            
+              
+            
+              
+            
+            
+              <li style="color: #9ca3af; font-size: 0.85rem; padding: 0.5rem 0.75rem;">本周无更新</li>
+            
+          
+        </ul>
+      </aside>
+      <main>
+        
+  
+    <h2 style="color:#111827;margin-bottom:1.5rem;padding-bottom:0.5rem;border-bottom:2px solid #e5e7eb;">
+      2026-06-08 ~ 2026-06-14
+    </h2>
+    
+      
+      
+      
+       
+        
+        
+      
+      <article class="card" id="arxiv" >
+        <h2>arxiv.org</h2>
+        <small>arxiv.org 上共发现 30 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 30）。</small>
+        
+          <ul class="item-list">
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.14255v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">ReactVLA: Fast and Lightweight Reactive Robot Manipulation via Improved Mean Flow Action Generation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-12</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Yanzhao Guo, Wenkai Chen, Jianwei Zhang</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>基于扩散的视觉-语言-动作（VLA）策略在表达性和多模式动作分布建模方面表现出了强大的能力。然而，它们对迭代采样的依赖引入了相当大的推理延迟，这限制了它们对反应式闭环机器人操作的适用性。为了解决这个限制，我们提出了 \texttt{ReactVLA}，一个用于实时机器人操作的轻量级、低延迟的 VLA 框架。ReactVLA 结合了两种互补的设计：（1）改进的平均流（iMF）动作生成器，将昂贵的多步扩散采样减少为一步到几步的动作生成；（2）注意力残差（AttnRes），一种动态深度特征路由机制，取代均匀残差累积，以更好地保留与任务相关的多模态表示。我们在大规模模拟基准（包括 LIBERO 和 RoboIMI）以及现实世界的机器人操作任务上评估 \texttt{ReactVLA}。实验结果表明，\texttt{ReactVLA} 始终优于类似大小的 VLA 基线，包括 SmolVLA 和 $π_0$。在具有挑战性的精确操作任务中，与领先的 VLA 模型相比，\texttt{ReactVLA} 的任务性能提高了 1.65$\times$，同时推理速度提高了 4$\times$ 以上。最后，它将现实世界的策略延迟减少到 38.6 毫秒以下，从而在物理机器人平台上实现快速反应控制。请查看我们的项目网站：https://game-loader.github.io/ReactVLA/。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.10267v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">What Matters in Orchestrating Robot Policies: A Systematic Study of Hierarchical VLA Agents</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-09</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Jiaheng Hu, Mohit Shridhar, Caden Lu, Dhruv Shah, Hao-Tien Lewis Chiang, Jie Tan, Annie Xie</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>通过使用高级 VLM 规划器将任务分解为由低级 VLA 控制器执行的语言子目标，分层视觉-语言-动作 (Hi-VLA) 系统已成为复杂机器人操作的一种有前途的范例。尽管最近取得了实证进展，但这些系统缺乏统一的设计原则：现有的 Hi-VLA 系统在如何选择和连接规划器、控制器、两者之间切换的机制以及如何在规划器中表示观察和记忆方面有所不同。在本文中，我们对用于机器人操作的 Hi-VLA 设计进行了系统研究。我们将代表性的 Hi-VLA 智能体统一在选项式控制框架下，并在短视野、长视野和推理密集型任务中对核心设计选择进行基准测试。我们的分析提炼了构建 Hi-VLA 系统的实用原则，展示了模型选择和接口机制如何共同塑造性能。在模拟和真实 ALOHA 机器人上进行的实验中，应用这些原理可以产生比平面 VLA 控制或简单设计的层次结构更强大的系统。总的来说，我们的结果为构建更有能力、更强大、更有原则的分层 VLA 代理奠定了基础。更多信息和视频请访问 jiahenghu.github.io/hi-vla。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.13886v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">PhysVLA: Towards Physically-Grounded VLA for Embodied Robotic Manipulation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-11</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Namai Chandra, Shriram Damodaran, Lin Wang</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作 (VLA) 模型擅长将视觉输入和自然语言指令直接映射到机器人控制策略。然而，由于它们主要接受训练以适应行为演示数据，因此它们没有明确执行基本物理原理，例如刚体动力学或接触约束。这暴露了一个关键的物理差距：在单步或分块 VLA 之上应用的标准时间平滑会牺牲轨迹质量，从而增加短期记忆无法解决的故障。为了弥补这一差距，我们引入了 PhysVLA (Physics-VLA)，这是一种即插即用的推理时间框架，旨在包装任何冻结的 VLA 主干，无需重新训练、微调或权重访问，每个控制步骤的开销不到 1 毫秒。PhysVLA 拦截预测的控制动作，仅捕获模拟器或系统状态，并应用双层校正：(i) 构建离散任务段（接近、抓取、运输和放置）的相位感知有限状态机，以及 (ii) 仅当动力学预言机检测到运动动力学不一致时才激活的选择性欧拉-拉格朗日门。该框架使用 7 自由度 Franka Panda 对 LIBERO-Spatial 上的 OpenVLA、OpenVLA-OFT、Force-VLA 和 Generalist-VLA 进行了评估，绝对成功率提高了 17%，稳定性提高了 19%，且没有每任务回归，所有四个骨干网的轨迹效率提高了 15%，Robosuite Lift 上的轨迹加加速度鲁棒性提高了 10 倍跨模拟器扫描。我们通过拾放任务在真实的 Agilex Piper 手臂上进一步验证了该框架，确认 PhysVLA 无需重新训练即可转移到物理硬件，成功率提高高达 50%，将物理感知建立为可组合、与主干无关的运行时模块。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12299v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Learning What to Say to Your VLA: Mostly Harmless Vision Language Action Model Steering</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Hyun Joe Jeong, Gokul Swamy, Andrea Bajcsy</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）模型为机器人控制提供了自然语言接口，但从语言到行为的映射通常是脆弱且不直观的：语义相似的指令可能会引发截然不同的行为，而某些功能可能无法仅通过提示来获得。因此，人类指令和零样本语言模型都无法可靠地引导 VLA 成功执行任务。在这项工作中，我们提出了一个框架，该框架可以交互式地搜索可提高闭环 VLA 任务性能的语言序列，将这些序列提炼为测试时语言反馈策略（LFP），并学习一个改进头来预测语言控制何时会提高性能。我们对这个改进头进行保形，以防止有害的指导干预，在这种情况下，相对于分布外场景的原始指令，LFP 会降低任务性能。至关重要的是，我们的方法在任意冻结的预训练 VLA 上运行，既不需要访问原始训练分布，也不需要对底层模型进行微调。在所见环境中，我们的保形 LFP 在模拟中将基本 VLA 性能提高了 24.7%，在硬件中提高了 65.0%。在视觉和语义扰动方面，我们的保形 LFP 具有强大的无害保证，并产生开环提示下未观察到的恢复行为。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.13279v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">See Selectively, Act Adaptively: Dual-Level Structural Decomposition for Bimanual Robot Manipulation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-11</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Yoon-Ji Choi, Young-Chae Son, Soo-Chul Lim</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>在双手机器人操作中，与任务相关的视觉信息随着任务阶段和环境的不同而变化，而两只手臂的交互在独立和协调模式之间切换，这使得策略学习具有挑战性。然而，现有的单一视觉-语言-动作（VLA）策略通过单一共享表示和动作生成路径处理不同的视觉输入和交互模式，通常无法单独考虑视觉相关性和双手交互结构。为了解决这个问题，我们提出了一种基于双级结构分解的双手操作VLA框架。视图选择性视觉路由器动态调整手腕视图贡献以强调相关视觉提示，而交互感知动作混合专家 (MoE) 将动作生成分解为协调和手臂方式的路径，以适应不同的双手交互模式。我们在 RoboTwin 2.0 中的六个模拟双手操作任务和三个长期现实世界任务上评估了所提出的方法。我们的模型在模拟中将整体平均成功率提高了 27.7%，在现实世界评估中提高了 43.3%，同时在两种设置中始终优于单模块变体。这些结果表明，共同考虑选择性视觉处理和双手交互结构的显式分解为稳健的双手操作提供了有效的归纳偏差。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.14010v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">RT-VLA: Real-Time Vision-Language-Action Models via Knowledge Distillation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-12</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Xiangyu Huang, Zhenlin Hua, Han Zhou, Shounak Sural, Ragunathan Rajkumar</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）模型通过联合建模视觉感知、语言推理、可解释性和动作预测，显示出端到端自动驾驶的强大潜力。然而，它们的大型视觉语言主干和推理模块引入了大量的推理延迟，从而阻碍了它们在道路网络的残酷现实中的部署。我们提出了 RT-VLA，这是一种轻量级的蒸馏 VLA 模型，通过多级监督蒸馏将最先进的 SimLingo 模型的驱动和推理能力转移到紧凑的学生模型中。RT-VLA 保留了基于语言的推理，并通过对安全关键驾驶时刻的离线语言分析来支持事后解释，而不会增加实时控制的延迟。与 SimLingo 老师相比，RT-VLA 保持了有竞争力的闭环驱动和语言推理性能，同时在纯视觉模式下推理时间缩短了 44.8 倍，在视觉+语言模式下推理时间缩短了 7.9 倍。这些结果表明，监督蒸馏是构建实时、可解释的 VLA 式自动驾驶模型的实用方法。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12475v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Learning to Assist: Collaborative VLAs for Implicit Human-Robot Collaboration</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Leo Xu, Letian Li, Alex Cuellar, Michael Hagenow</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>人机协作（HRC）结合了人类和机器人的互补优势，以提高任务效率。然而，许多现有的协作系统依赖于手工设计的管道，限制了其新任务的可扩展性和灵活性。在这项工作中，我们展示了通过模仿学习进行端到端训练的模型，特别是视觉语言动作（VLA）模型，可以支持协作操作，并描述影响其现实世界表现的关键因素。我们评估了两个最先进的模型，并确定了隐式 HRC 中动作分块策略的失败模式，其中演示动作泄漏（即跨越潜在任务转换的动作块）可能会导致过早的辅助行为。我们发现这个问题随着执行时间的延长而增加，并且发生在现实世界的协作 VLA 系统中，例如当机器人试图在人准备好之前移交工具时。我们提出了一种推理时间引导方法来减少这些错误的辅助操作，同时保持策略性能。最后，通过一项由 16 名参与者参与的长期协作组装任务用户研究，我们表明，与短期策略相比，引导可以实现更长的执行范围，同时减少过早的协助，从而实现更快的协作并减少失败。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12105v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">DAM-VLA: Decoupled Asynchronous Multimodal Vision Language Action model</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Pankhuri Vanjani, Zhuoyue Li, Jakub Suliga, Moritz Reuss, Gianluca Geraci, Xinkai Jiang, Rudolf Lioutikov</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉语言动作（VLA）模型继承了视觉语言预训练的共享同步时钟，以一种速率处理每个输入。这与物理交互不一致，在物理交互中，高频模态以数百赫兹的速度变化，视觉发展更慢，而语言在整个情节中保持不变。同步 VLA 对慢模态进行过采样，对快速模态进行欠采样，并以最低有效频率限制动作生成。我们假设，将每个模态的时间处理解耦，让每个模态以自己的传感器速率更新和保留信息，会产生更强的表示和更鲁棒的控制。我们提出了 DAM-VLA，它保持按传感器速率刷新的每种模态潜在缓冲区，并由动作头连续读取，通过门控交叉注意力集成新的高频模态，使预训练的主干保持完整。在七个接触丰富的现实世界操纵任务中，DAM-VLA 使最强同步基线的平均成功率提高了一倍以上（95.2% vs. 40.95%），同时保持平滑、反应性 100Hz 控制。项目网站：\href{https://intuitive-robots.github.io/DAM-VLA/}{intuitive-robots.github.io/DAM-VLA/}
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.14409v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Hy-Embodied-0.5-VLA: From Vision-Language-Action Models to a Real-World Robot Learning Stack</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-12</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 He Zhang, Lingzhu Xiang, Haitao Lin, Zeyu Huang, Minghui Wang, Dingyan Zhong, Yubo Dong, Yihao Wu, Yongming Rao, Dongsheng Zhang, Wanjia He, Ling Chen, Kai Huang, Jiahao Chen, Sichang Su, Xumin Yu, Ziyi Wang, Chengwei Zhu, Xiao Teng, Yuchun Guo, Yufeng Zhang, Yuandong Liu, Rui Wang, Zisheng Lu, Han Hu, Zhengyou Zhang</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>在本报告中，我们介绍了 Hy-Embodied-0.5-VLA，缩写为 HyVLA-0.5，这是一个涵盖完整机器人学习堆栈的端到端系统：数据收集、模型设计、持续预训练和监督微调、强化学习后训练和实际部署。每个组件在此堆栈中扮演着不同的角色。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12978v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Trajectory-Level Redirection Attacks on Vision-Language-Action Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-11</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Gokul Puthumanaillam, Vardhan Dongre, Pranay Thangeda, Hooshang Nayyeri, Dilek Hakkani-Tür, Melkior Ornik</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）策略将自然语言引入闭环机器人控制中，使机器人能够直接根据文本指令执行操作任务。相同的界面使文本在控制中扮演了反复出现的角色，因为提示在每个重新计划步骤中都会重复使用，并且每个提示条件操作都会改变策略所作用的未来观察结果。现有的 VLA 攻击研究对抗性提示，引发有针对性的低级操作或使此类操作在不断变化的图像中持续存在。我们确定了一种更强的轨迹级故障模式：仍然 $\textit{appears}$ 指定预期任务但重定向最终物理结果的提示。我们在数学上将这一设置形式化为 $\textit{命令保留轨迹重定向}$，这是一种仅提示的威胁模型，其中攻击者在事件发生之前选择一个提示，所有策略和环境组件保持固定，并且提示必须保持接近良性指令，同时省略目标词和校正语言。为了找到这样的提示，我们引入了一种策略提示搜索方法，该方法使用推出来发现扰动，其闭环行为跟踪目标任务，同时满足命令保留约束。模拟和硬件实验表明，近乎良性的提示扰动可以将 VLA 部署重定向到攻击者指定的目标。这些结果暴露了 VLA 指令基础中的轨迹级漏洞：看似保留预期命令的文本仍然可以让对手控制机器人的最终物理结果。项目网站：https://vla-redirection-attack.github.io/
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.13435v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">GIVE: Grounding Human Gestures in Vision-Language-Action Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-11</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Pengfei Liu, Gen Li, Junqiao Fan, Boyu Ma, Jindou Jia, Yang Xiao, Jianfei Yang</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>人类交流本质上是多模式的，语言通常伴随着非语言提示，例如传达意图的手势。然而，当前的视觉-语言-动作（VLA）模型将机器人操作视为纯粹的文本驱动任务，忽视了手势在人机交互（HRI）中的重要作用。当语言指令不明确或不明确时，这通常会导致不准确的意图基础和不可靠的操作。为了应对这一挑战，我们提出了 GIVE（通过视觉语义增强的手势意图），这是一种有效的方法，可以通过人类手势理解来增强预先训练的 VLA 模型，而无需修改架构。具体来说，GIVE 通过两个互补的途径整合手势信息：视觉途径将手部骨骼和指尖光线叠加到机器人观察上，以实现明确的对象基础；语义途径，生成人类手势的高级描述和任务指令，以实现稳健的意图基础。通过联合利用视觉和语义指导，GIVE 使 VLA 策略能够更好地将手势与操作行为关联起来，并适应动态交互意图。在现实世界的 HRI 实验中，GIVE 的性能大大优于基线，将目标对象识别准确率提高了 40%，总体任务成功率提高了 80%，同时对看不见的空间布局和不同的参与者表现出了强大的鲁棒性和泛化性。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.10568v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">VeriSpace: Spatially Grounded Action Verification for Vision-Language-Action Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-09</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Guiyu Zhao, Longteng Guo, Junyou Zhu, Jun Fu, Yanghong Mei, Bin Cao, Jie Jiang, Xingjian He, Jing Liu</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）模型在机器人操作方面显示出了强大的前景，但它们在测试时的可靠性仍然受到一次性动作预测的限制，即使很小的动作错误也可能导致抓取失败、碰撞或不正确的任务进展。一个自然的替代方案是为 VLA 系统配备测试时验证，允许在执行之前提出和评估多个候选操作。然而，可靠的动作验证具有挑战性，因为它不仅需要区分候选动作之间细微的几何差异，还需要评估动作是否在实现任务目标方面取得了有意义的进展。我们推出了 VeriSpace，一种 3D 感知动作验证器，用于 VLA 系统中的测试时动作选择。VeriSpace 通过两个关键组件评估候选动作：双路径 3D 注入场景编码，它构建共同保留视觉语义和显式 3D 几何的场景表示；以及空间接地动作推理，它通过对任务相关的空间关系、几何有效性和预期目标进度进行推理来评估每个动作。这些组件共同实现了对微妙但结果关键的行动候选者之间更可靠的区分，同时保持与现有 VLA 政策的完全兼容。对公共基准和现实世界机器人操作任务的实验表明，VeriSpace 持续提高了基础 VLA 策略和先前基于验证的方法的决策可靠性，在分布内和分布外设置中产生了显着的收益。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.10305v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">SARM2: Multi-Task Stage Aware Reward Modeling for Self Improving Robotic Manipulation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-09</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Qianzhong Chen, Hau Zheng, Justin Yu, Suning Huang, Jiankai Sun, Ken Goldberg, Chuan Wen, Pieter Abbeel, Yide Shentu, Philipp Wu, Mac Schwager</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>用于长视野操纵的微调视觉-语言-动作（VLA）策略仍然在很大程度上依赖于行为克隆，这需要昂贵的高质量演示并使策略保持在演示分布附近。奖励模型可以通过重新加权演示并为机器人强化学习（RL）提供密集监督来减少这种依赖性，但它们必须是密集、准确和通用的。现有方法存在不足：特定于任务的阶段感知模型是准确的，但需要每个任务的注释，而通用视觉语言模型（VLM）奖励模型广泛适用，但对于细粒度的长期进展来说过于粗糙。我们引入了 RM，一种多任务阶段感知奖励模型，它将基于动作原语的阶段估计器与多门专家混合 (MMoE) 值头相结合，在操作任务中产生密集的每步奖励。在 RM 的基础上，我们进一步提出了 SPIRAL（通过奖励调整学习进行自我策略改进），这是一种基于策略的奖励引导框架，可以通过廉价的自主部署来改进 VLA 策略。在 10 项任务基准上，RM 使价值估计 MSE 比最强基准降低了 80%；当在 SPIRAL 中使用时，它在折叠短裤（58% 到 100%）和清洁白板（50% 到 90%）上的任务成功率从大约 50% 提高到近乎完美，这表明高质量的密集奖励是稳定的机器人数据飞轮的关键。项目网站：https://qianzhong-chen.github.io/sarm2.github.io/。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.14375v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Elastic Queries Reinforcement Learning: Self-Aware Policy Execution for VLA Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-12</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Ge Wang, Xinyu Tan, Xiang Li, Man Luo, Chengsi Yao, Shenhao Yan, Jiahao Yang, Fan Feng, Honghao Cai, Xiangyuan Wang, Zhixin Mai, Yiming Zhao, Yatong Han, Zhen Li</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉语言动作（VLA）模型是用于机器人操作的强大动作生成器，但它们通常以固定的推理和重新规划时间表执行。这种刚性忽略了机器人控制的不均匀难度：接触丰富或不确定的状态可能需要更多的计算和更新的反馈，而更简单的状态通常可以用更少的推理步骤和更长的开环执行来处理。我们提出了弹性查询强化学习（EQRL），这是一个使每个 VLA 策略查询具有弹性的框架。轻量级潜在调度适配器联合选择潜在输入、去噪预算和动作块长度，无需微调底层 VLA 模型。为了使调度困难意识，EQRL 训练联合潜在调度动作的批评者，并从批评者整体分歧中得出状态难度信号。该信号引导计算走向困难状态，而学习的残差允许任务驱动的校正。我们将可变块执行制定为具有依赖于块的折扣和摊销函数评估数量（NFE）预算的查询级宏操作强化学习。在模拟和真实机器人操作中，EQRL 降低了摊余推理成本，同时保持或提高了任务成功率。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12956v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">SERF: Spatiotemporal Environment and Robot Feature Map for Long-Horizon Mobile Manipulation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-11</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Sunghwan Kim, Byeonghyun Pak, Kehan Long, Yulun Tian, Nikolay Atanasov</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>长视距机器人移动操纵需要对定位、环境变化和任务进度进行持续推理，所有这些都很难仅从图像观察中推断出来。在本文中，我们证明了在时空特征图上调节移动操作策略可以改善长视野的推理。该地图将环境和铰接式机器人身体表示为共享潜在空间中的神经点，并根据自我中心观察和本体感受状态在线更新。我们使用对象级刚性跟踪更新环境神经点，并使用正向运动学更新机器人神经点。我们使用时空环境和机器人特征（SERF）地图作为视觉语言动作（VLA）模型的状态输入，通过从多个参考系和空间尺度中提取地图标记，为策略提供本地和全局上下文。我们在 BEHAVIOR-1K 上演示了 SERF，BEHAVIOR-1K 是家庭环境中长视距移动操作的基准。实验表明，SERF VLA 策略优于仅图像基线，通过遵循更直接的轨迹更快地达到子目标，提高了对场景配置转换的鲁棒性，并从对象丢失故障中恢复。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.11906v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">When Does Language Matter? Multilingual Instructions Reveal Step-wise Language Sensitivity in Vision-Language-Action Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Xuan Dong, Zhe Han, Tianhao Niu, Qingfu Zhu, Wanxiang Che</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）模型在语言调节的机器人操作中表现出了强大的性能，但它们对语言变化的鲁棒性仍然知之甚少。在这项工作中，我们通过将 LIBERO 基准翻译成十种语言，首次对 VLA 模型进行了系统的多语言评估，揭示了非英语指令下的严重性能下降，成功率下降了 30-50%。通过对任务执行的细粒度分析，我们发现语言影响在各个步骤中高度不均匀：某些步骤表现出强烈的语言依赖性并主导整个任务失败，而其他步骤则很大程度上与语言无关。基于这一见解，我们提出了一种逐步推理时间干预，根据逐步语言敏感性来对齐表示，从而显着提高语言变化下的性能。我们的结果表明，VLA 模型中的语言鲁棒性从根本上来说是一个逐步控制问题，凸显了时间结构化分析对于可靠的具体代理的重要性。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.09416v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Harness Engineering for Physical AI: Robot Middleware Is the Harness Layer</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-08</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Sanghoon Lee, Jiyeong Chae, Kyung-Joon Park</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>机器人中间件在物理人工智能时代面临新的角色。学习策略、规划器和视觉语言动作 (VLA) 模型现在作为控制路径上的因果参与者进入已部署的机器人，但将它们与计时、调度和网络集成的层尚未命名。最近的语言代理工作将这一层命名为“harness”，即协调工具、管理状态、限制资源和记录执行的外部系统。机器人社区尚未采用这种框架，我们建议机器人中间件就是这种工具。物理 AI 线束与软件线束的不同之处在于它的干预方式。软件工具在工具调用边界进行调解。物理人工智能工具必须同时调解控制、计算和通信，因为学习策略的输出跨越所有三个：它的命令改变轨迹，它的推理时间改变时间表，它的有效负载改变带宽。机器人中间件是最低的机器人堆栈层，具有所有三个层的中介抽象，因此最适合组成它们的执行。它已经提供了安全带所需的大部分功能，但缺乏人工智能模型的执行。我们将这种缺失的执行命名为三个功能：发射时的投影门控每个输出，隔离限制模型的执行和传输槽，以及当检查失败时传输回落到经过验证的基线。如今，每一个都以手工构建的应用程序代码的形式出现在已部署的机器人系统中，构建在机器人中间件已经提供的表面上。机器人中间件不应将它们作为最好的单轴执行器来托管，而应将其作为组成这三者的层。我们将其描述为 ROS 2 Harness Profile，这是一个部署工件，它携带 AI 模型声明的输出区域、推理预算和操作机制，而中间件则在 ROS 2、DDS 和 Zenoh 上强制执行它们。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.09740v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">ProbeAct: Probe-Guided Training-Free Failure Recovery in Vision-Language-Action Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-08</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Fan Zhang, Seongbin Park, Baharan Mirzasoleiman, Shariar Talebi, Nader Sehatbakhsh</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作 (VLA) 模型在其训练分布 2 内的语言条件机器人操作方面表现出强大的性能 1，但其泛化能力仍然受到根本限制。它们缺乏处理扰动所需的鲁棒性，当 con-4 遇到光照变化、摄像机视角改变或初始状态变化较小时，它们经常会失败。我们提出了 PROBEACT，这是一种免训练的运行时干预框架 6 工作，可以检测 7 年前训练的 VLA 策略中的抓取和放置失败并从中恢复，而无需修改其权重或需要额外的8演示。PROBEACT 结合了三个组件：(i) 轻量级多 9 目标隐藏状态探测器，可根据中间 VLA 特征预测任务相关对象 10 的 3D 位置，并针对 11 多对象场景进行匈牙利匹配的身份跟踪；(ii) 与物体无关的运动学状态机，仅使用夹具内部信号和末端执行器运动学来检测抓取、运输和放置故障；(iii) 分层控制屏障函数 (CBF)14 过滤器，将重复故障位置编码为软安全设置约束，mini-15 主要纠正 VLA 操作，同时保留基线行为。作为一种即插即用、免训练干预循环，PROBEACT 与现有的训练 17 管道正交。根据 LIBERO-plus 基准进行评估，我们的框架充当通用安全网，将 OpenVLA-OFT 模型的成功率从 69.6% 提高到 74.1%，同时展示了对基础和微调 VLA 策略的广泛适用性。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.09499v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Targeting World Models to Compromise Robot Learning Pipelines</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-08</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Ethan Rathbun, Ahmed Agha, Saaduddin Mahmud, Christopher Amato, Alina Oprea, Eugene Bagdasarian</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>最近，世界模型作为用于生成机器人训练数据或模拟现实世界环境的更有效的数据工具，其受欢迎程度和功能都在快速增长，许多工作建议将其集成到机器人学习管道中。虽然非常实用，但在这项工作中，我们证明世界模型在机器人学习供应链中引入了一个独特的隐秘且有效的数据中毒入口点，尽管使用看似安全的地面实况训练数据进行了训练，但可能会导致部署不安全或受到其他损害的机器人策略。与直接将危险轨迹植入到出售或上传的数据集中的传统数据中毒技术相比，我们新颖的攻击方法将恶意提示或妥协的转换动态注入到明显安全的远程操作数据集中，这些数据只有在通过世界模型作为输入时才会被激活。这可能会导致生成危险的合成机器人训练轨迹，从而导致不安全或受损的机器人策略。我们展示了针对最先进的动作条件和文本条件世界模型的攻击的有效性，展示了下游 DRL 策略的完整端到端后门以及 VLA 设置的概念验证。总的来说，这些发现需要研究更安全的世界模型，并重新评估它们在机器人学习供应链中的地位。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.14084v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Self-Improving VLA Policies: Selected Diffusion Noise for Spurious-Robust Action Smoothing</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-12</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Duc Minh Nguyen, Bao-Ngoc Dao, Tung M. Luu, Binh Gia Nguyen, Vinh Tong, Anji Liu, Vu N. Duong, Dung D. Le, Daniel Sonntag, Trung Le, Ngan Le, Jan Peter, An Thai Le, Minh Nhat Vu, Mathias Niepert, Khoa D. Doan, Duy M. H. Nguyen, Vien Anh Ngo</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>基于扩散的视觉-语言-动作（VLA）策略可以在机器人操作中实现强大的泛化，但对虚假视觉相关性和噪声动作生成仍然敏感，导致扰动下的脆弱行为。我们引入了选择性扩散噪声（SDN），这是一种简单、免训练的测试时间方法，通过利用扩散噪声空间作为可控自由度来提高鲁棒性和成功率。SDN 动态采样与参考集最大程度分离的噪声向量，以减轻对虚假线索的依赖，同时选择产生更连贯动作轨迹的候选向量。即使在物体遮挡的观察下，这种双重目标也能促进稳定的行为，并在不修改模型参数的情况下减少动作抖动。我们在两个模拟基准（Google Robot、Widow-X）和跨多个 VLA 策略的两个真实机器人数据集（包括 pi_0、Groot-N1.5 和 Groot-N1.6）上评估 SDN。SDN 持续将模拟中的成功率提高了 8%，在现实环境中提高了 10%，同时产生了更流畅、更稳定的操作。我们的结果强调，扩散噪声选择可以作为在测试时增强 VLA 策略的有效且通用的机制。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.13578v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">LabVLA: Grounding Vision-Language-Action Models in Scientific Laboratories</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-11</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Baochang Ren, Xinjie Liu, Xi Chen, Yanshuo Liu, Chenxi Li, Daqi Gao, Zeqin Su, Jintao Xing, Zirui Xue, Rui Li, Xiangyu Zhao, Shuofei Qiao, Minting Pan, Wangmeng Zuo, Lei Bai, Dongzhan Zhou, Ningyu Zhang, Huajun Chen</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>科学实验室越来越依赖人工智能系统来推理实验，但进行科学研究的物理行为在很大程度上仍然超出了他们的能力范围。人工智能可以帮助阅读文献、生成假设和规划协议，但在工作台上执行这些协议仍然需要人类操作员。视觉-语言-动作（VLA）模型提供了书面协议和机器人执行之间的一种可能的接口，但现有策略主要针对家庭和桌面演示进行训练，很少遇到科学实验室中的仪器、透明液体或固定协议工作流程。缩小这一差距需要实验室特定的监督和统一的学习框架，该框架可以适应用于执行实验协议的不同机器人实施例。因此，我们将数据和实施例视为模型设计的中心瓶颈。为了解决数据方面的问题，我们构建了 RoboGenesis，这是一个基于模拟的工作流程和数据引擎，它根据原子技能组成配置的实验室工作流程，验证和过滤部署，并跨支持的机器人配置文件导出结构化演示。在策略方面，我们提出了 LabVLA，采用两阶段配方进行训练：FAST 动作令牌预训练首先使 Qwen3-VL-4B-Instruct 骨干动作在学习任何连续控制之前进行感知，然后流匹配后训练在知识隔离下附加 DiT 动作专家。在 LabUtopia 基准测试中，LabVLA 在分布内和分布外设置下的所有评估基线中均取得了最高的平均成功率。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.10180v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Flow Control: Steering Vision-Language-Action Models with Simple Real-Time Inputs</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-08</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Jonathan C. Kao, Jason Chan, Andy Wang</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>我们引入了视觉-语言-动作 (VLA) 模型的流程控制，这是一种通过通用输入（例如键盘）实时引导 VLA 动作的简单而有效的方法。该方法可以开箱即用，不需要重新训练或微调 VLA。它允许相对粗略的用户输入来引导 VLA 与用户意图保持一致。VLA将这些输入转换为从训练过程中学习到的VLA专家动作分布中抽取的动作样本，从而生成的动作具有高质量（符合动作专家分布）和高保真度（反映用户意图）。我们证明了流量控制具有许多理想的特性：（1）流量控制可以根据用户输入准确且响应地引导机器人动作，（2）它对次优的用户输入具有鲁棒性，（3）它使用户能够引导VLA以实现更高的成功率和更快的任务完成速度，以及（4）在流量控制轨迹上微调VLA可以改善自主策略。总之，这些结果为用户提供了一种简单直观的方法来帮助引导 VLA 操作，从而提高任务性能。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.09749v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Your Model Already Knows: Attention-Guided Safety Filter for Vision-Language-Action Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-08</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Seongbin Park, Fan Zhang, Baharan Mirzasoleiman, Shahriar Talebi, Nader Sehatbakhsh</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作 (VLA) 模型在各种机器人操作任务中展示了令人印象深刻的端到端性能。然而，这些策略不能保证不会与场景中与任务无关的对象发生碰撞。现有的安全过滤器通过查询视觉语言模型（VLM）来识别障碍物及其位置来回避这个问题。然而，这对于在控制循环中运行来说太慢，并且只能在情节初始化时调用，使得过滤器无法跟踪移动的障碍物。我们发现 VLA 模型中的少量注意力头能够可靠地定位策略想要接近的对象。这些头可以在免训练的安全框架内使用，该框架在每一步从注意力头获取活动目标，将场景的其余部分视为障碍物，并将它们输入控制屏障功能（CBF）过滤器。与轻量级实时对象跟踪器一起，可以避免非静态障碍物的碰撞。我们在 SafeLIBERO 上评估我们的框架，并通过移动障碍对其进行扩展。在原始静态基准测试中，我们的方法的性能与使用特权模拟器状态来识别目标的预言机相当，模拟在情节初始化时运行一次的基于 VLM 的识别步骤。在动态变体中，预言机的初始目标分配变得过时，我们的方法平均比它高出 43%。我们的研究结果表明，实时安全过滤所需的感知信号已经存在于 VLA 策略中，并且无需额外的训练或大量辅助模型即可利用。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.09337v2" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">TORL-VLA: Tactile Guided Online Reinforcement Learning for Contact-Rich Manipulation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-08</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Huaihang Zheng, Yi Yang, Kai Ma, Shenglin Xu, Tian Xie, Guozheng Li, Xiangyu Wang, Yiren Ma, Si Liu, Yinian Mao, Baoxu Liu</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作 (VLA) 模型已成为机器人操作的强大框架，最近的研究已将触觉或力反馈引入 VLA 中，以解决接触丰富的任务。然而，这些模型通常部署为离线策略。当接触条件偏离训练分布时，策略无法进行在线适配，导致接触力度不合适、重试效率低等问题。因此，我们提出了 TORL-VLA，一种触觉引导的在线强化学习框架，它将触觉反馈与策略细化相结合，以实现丰富的接触操作。我们的方法引入了触觉衍生的扳手感知 VLA 来预测参考动作和未来的扳手序列，同时使用轻量级在线 RL 模块来细化参考动作。为了稳定从混合的探索性政策生成和人为干预数据中的学习，我们引入了干预审查批评家，以防止干预后的成功被错误地归功于干预前政策生成的行动。针对长视野接触丰富任务（包括闩锁操作、咖啡杯放置和鸡蛋处理）的真实机器人实验表明，TORL-VLA 提高了子任务和完整任务级别的成功率，以及在强基线上的时间限制执行效率。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12352v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">CHORUS: Decentralized Multi-Embodiment Collaboration with One VLA Policy</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Ria Doshi, Tian Gao, Annie Chen, Chelsea Finn, Jeannette Bohg</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>多机器人协作使机器人能够有效地承担各种任务，从将沙发移过门口到在建筑工地上组装结构。然而，在移动多机器人环境中实现这种协调仍然具有挑战性：以团队规模的综合观察为条件的集中式方法与团队规模的关系较差，而为每个机器人训练一个策略的分散式方法通常需要在推理时进行明确的对齐程序或信息共享，以克服部分可观察性。我们的主要见解是，预训练的视觉语言动作（VLA）模型的视觉运动先验应该能够仅根据每个机器人的本地观察进行反应式、分散式协作，而无需这些推理时间假设。我们提出了 CHORUS，一个采用单个 VLA 主干来控制多样化的多机器人团队的框架。在推理时，每个机器人运行一个独立的 CHORUS 副本，仅以自己的观察结果和机器人识别提示为条件。在现实世界的实验中，包括移动卷尺测量、图书馆书籍交接和洗衣篮提升，CHORUS 比分散式、从头开始的模型提高了 64%，对队友行为的反应性提高了 40%，并且优于集中式基线。总之，这些结果表明，共享 VLA 主干能够实现去中心化的多机器人协作，无需每个机器人策略或推理时的机器人间通信。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.09009v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Scaling by Diversified Experience for Vision-Language-Action Models</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-08</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Leiyu Wang, Zhaofengnian Wang, Xueqi Li, Luoyi Fan, Cewu Lu, Nanyang Ye</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>由于高级推理与低级控制的纠缠以及策略优化的不稳定，视觉-语言-动作模型在现实世界的部署中面临着重大挑战。在本文中，我们介绍了 SyVLA，这是一种经过多元化经验训练的稳健 VLA 模型。我们提出了一种意图解耦算法，将与控制相关的特征与推理上下文隔离开来，并提出了一种类似样本引导的 RL 管道，以稳定策略更新并减轻分布变化。对现实世界机器人任务和多模态基准的大量实验表明，与现有方法相比，SyVLA 实现了卓越的任务成功率和更强的分布外泛化能力，同时有效保留了核心视觉语言功能。代码和数据集发布于 \href{https://sy-vla.github.io/}{项目页面}。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12109v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Bridging the Morphology Gap: Adapting VLA Models to Dexterous Manipulation via Intent-Conditioned Fine-Tuning</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Chuanke Pang, Junyi Huang, Zhijun Zhao, Yaobing Wang, Kun Xu, Xilun Ding</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）模型在机器人操作中表现出了卓越的零样本泛化能力，但绝大多数预训练管道仍然严格局限于低自由度平行夹具。将这些丰富的语义先验适应高自由度灵巧的手会引入严重的形态差距，直接的端到端关节微调本质上会导致空间推理的灾难性遗忘和由于数据稀缺而导致的急性动作流形崩溃。在本文中，我们提出了 InDex，一种新颖的、数据高效的适应框架，植根于跨形态语义继承。我们没有丢弃预先训练的 1-DoF 并行抓取输出，而是将其重新调整为连续的、宏观的虚拟抓取意图代理，以对控制拓扑进行排序。我们实现了一个两阶段解耦学习架构：第一阶段参数有效地对齐VLA主干以预测连续手臂轨迹和标量抓取意图；第二级冻结该空间主干，并利用意图调节的降噪扩散头来解码多指末端执行器的细粒度关节关节。跨一系列多阶段、接触丰富的灵巧操作任务的广泛模拟基准表明，InDex 以最少的演示数据有效地掌握了复杂的技能，大大优于整体基线，同时保留了原始 VLA 先验的强大空间概括性。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.10501v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Uncovering Vulnerability of Vision-Language-Action Models under Joint-Level Physical Faults</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-09</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Minsoo Jo, Taeju Kwon, Junha Chun, Youngjoon Jeong, Taesup Kim</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>在真实的机器人系统中部署视觉-语言-动作（VLA）模型不仅需要对语义和感知变化具有鲁棒性，而且还需要对改变动作物理实现方式的实施方故障具有鲁棒性。真实的机器人可能会经历由执行器退化、硬件故障、安全限制、碰撞损坏或磨损引起的摩擦引起的关节级变化。这些错误至关重要，因为它们改变了策略的动作到动作的接口，破坏了命令动作、实现的动作和后续观察之间习得的闭环关系。在这项工作中，我们研究了现实的关节级物理故障，并表明当通过扰动的机器人身体执行预测动作时，VLA 模型很容易受到攻击。我们的分析揭示了关节依赖性效应，受影响关节的任务成功率存在异质性退化。我们还表明，性能下降不能仅仅归因于物理不可行性，因为诸如关节摩擦增加之类的可行故障仍然会大大降低成功率并导致闭环执行不匹配。受这些发现的启发，我们提出了联合级物理故障感知残差校准器 (J-PARC)，这是一种建立在冻结 VLA 策略之上的轻量级残差校准框架。J-PARC 从最近的关节动态中推断出潜在的关节故障状态，并在该状态上设置共享剩余校准器，从而能够对故障关节进行自适应动作校正。实验表明，J-PARC 提高了联合级故障下的鲁棒性，同时保持无故障环境性能。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.12403v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">World Pilot: Steering Vision-Language-Action Models with World-Action Priors</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Zefu Lin, Rongxu Cui, Junjia Xu, Xiaojuan Jin, Wenling Li, Lue Fan, Zhaoxiang Zhang</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作 (VLA) 模型继承了大规模预训练的语义基础，并且能够胜任分布内操作任务。然而，这种基础是建立在静态图像-文本对的基础上的，而操纵是一个连续的、接触丰富的过程，其动态是预训练无法捕获的。我们提出了 World Pilot，这是一个 VLA 框架，它利用世界行动模型 (WAM) 的先验知识来增强政策，并通过两条互补的路径进入决策链。潜在转向将感知层置于场景演化潜在状态上，而动作转向则在动作生成器之前提供预期轨迹作为运动。这两个先验一起为 VLA 配备了场景的预期视图和轨迹级运动提示以及语义调节，并且即使由未经动作后训练的视频预训练世界模型提供，场景进化先验仍然有效。World Pilot 在 LIBERO-Plus 零样本 OOD 基准上获得了最先进的 84.7% 的总成功率，并且在四个操纵任务的每个真实机器人设置中获得了最高的成功率，在视点、几何形状、可变形状态和姿势的变化下具有最大的成功率。项目网站：https://world-pilot.github.io/
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="http://arxiv.org/abs/2606.11743v1" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">TacCoRL: Integrating Tactile Feedback into VLA via Simulation</a>
+                      
+                    </div>
+                    
+                      <div style="font-size:0.85rem;color:#6b7280;margin-top:0.25rem;margin-bottom:0.5rem;line-height:1.6;">
+                        
+                          <span style="margin-right:1rem;">📅 2026-06-10</span>
+                        
+                        
+                          <span style="margin-right:1rem;">👤 Siyu Ma, Yuqi Liang, Chang Yu, Yunuo Chen, Hao Su, Yixin Zhu, Yin Yang, Chenfanfu Jiang</span>
+                        
+                      </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-radius:0.5rem;">
+                        <strong style="color:#111827;">摘要：</strong>视觉-语言-动作（VLA）模型为机器人操作提供了强大的视觉、语言和动作先验，但仅靠视觉观察往往会错过接触丰富的任务所需的局部接触状态。我们提出了 TacCoRL，这是一个可扩展的框架，它将触觉反馈注入到 VLA 策略中，并通过模拟-真实协同训练和基于模拟的强化学习 (RL) 来改进它们，而不需要大规模的触觉预训练或广泛的现实世界接触探索。关键思想不仅是添加触摸作为输入，而且是学习接触读数如何调节接近失败状态下的动作响应，这种状态在演示中很少见，并且在硬件上收集有风险。我们使用真实对齐的模拟器作为接触交互的闭环训练环境。混合模拟和真实轨迹首先在预训练策略中热启动触觉条件动作。具有可验证任务奖励的强化学习然后使用模拟接触推广来优化策略。它强化了导致任务完成的触觉条件动作，而真实轨迹上的监督目标使细化策略保持锚定于部署视觉、触觉和动作分布。由此产生的策略直接传输到真实机器人，无需特权模拟状态或在线现实世界强化学习。在四项双手接触丰富的任务中，最终的视觉触觉策略的平均成功率为 72.5%，而基线为 50.0%。结果视频和更多详细信息请访问 https://tac-corl.github.io/
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+      
+      
+      
+      
+        
+        
+      
+      <article class="card" id="organizations" style="border-left: 4px solid #10b981;">
+        <h2>🏢 头部玩家</h2>
+        <small>头部玩家本周无更新。</small>
+        
+          <p class="empty" style="padding: 1.5rem; text-align: center; color: #9ca3af; font-size: 0.95rem;">本周无更新</p>
+        
+      </article>
+    
+      
+      
+      
+       
+        
+        
+      
+      <article class="card" id="github" >
+        <h2>github.com</h2>
+        <small>github.com 上共发现 9 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 9）。</small>
+        
+          <ul class="item-list">
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/bansky-cl/diffusion-nlp-paper-arxiv" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">bansky-cl/diffusion-nlp-paper-arxiv</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        Auto get diffusion nlp papers in Axriv. More papers Information can be found in another repository &#34;Diffusion-LM-Papers&#34;. 
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/zezhishao/DailyArXiv" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">zezhishao/DailyArXiv</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        Daily ArXiv Papers.
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/FluxVLA/FluxVLA" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">FluxVLA/FluxVLA</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        An all-in-one VLA engineering platform for embodied AI — from data to real-robot deployment.
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/HCPLab-SYSU/Embodied_AI_Paper_List" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">HCPLab-SYSU/Embodied_AI_Paper_List</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        [Embodied-AI-Survey-2025] Paper List and Resource Repository for Embodied AI
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/patrick-llgc/Learning-Deep-Learning" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">patrick-llgc/Learning-Deep-Learning</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        Paper reading notes on Deep Learning and Machine Learning
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/zli12321/Vision-Language-Models-Overview" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">zli12321/Vision-Language-Models-Overview</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        A most Frontend Collection and survey of vision-language model papers, and models GitHub repository. Continuous updates.
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/Trustworthy-AI-Group/Adversarial_Examples_Papers" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Trustworthy-AI-Group/Adversarial_Examples_Papers</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        A list of recent papers about adversarial learning
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/PetroIvaniuk/llms-tools" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">PetroIvaniuk/llms-tools</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        A list of LLMs Tools &amp; Projects
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://github.com/Vector-Wangel/XLeRobot" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Vector-Wangel/XLeRobot</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f9fafb;border-left:3px solid #6b7280;border-radius:0.375rem;">
+                        XLeRobot: Practical Dual-Arm Mobile Home Robot for $660
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+      
+      
+      
+       
+        
+        
+      
+      <article class="card" id="huggingface" >
+        <h2>huggingface.co</h2>
+        <small>huggingface.co 本周无更新。</small>
+        
+          <p class="empty" style="padding: 1.5rem; text-align: center; color: #9ca3af; font-size: 0.95rem;">本周无更新</p>
+        
+      </article>
+    
+      
+      
+      
+       
+        
+        
+      
+      <article class="card" id="zhihu" >
+        <h2>zhihu.com</h2>
+        <small>zhihu.com 上共发现 30 条与 VLA 相关的更新内容（按搜索相关性排序，显示 Top 30）。</small>
+        
+          <ul class="item-list">
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048489796037826246" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">VLA Sim-Real 协同训练 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        4天前 ... 2026继续，再补一个Embodied AI”，没几个月过去已经开始应验，现在半年过去简直要 ... [2] RT-2: Vision-Language-Action Models: https://robotics-transformer2.
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2045070279693570469" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Qwen-VLA：跨任务、环境与机器人形态的视觉-语言-动作统一建模</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        2天前 ... 26年5月来自qwen团队的论文“Qwen-VLA: Unifying Vision-Language-Action Modeling across Tasks, Environments, and Robot Embodiments”。 具身智能的研究往往依赖于各 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048436103003248084" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Robots Need More than VLA and World Models论文解析 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        4天前 ... 论文链接https://arxiv.org/pdf/2606.06556一、要解决什么问题核心论点当前通用机器人智能被错误地框定为策略扩展问题：”收集更多机器人演示→ 训练更大的VLA模型→ 期望 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047471207583428668" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">CV计算机视觉每日开源代码Paper with code速览-2026.6.8 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        7天前 ... 【世界模型】Uni-World VLA: Interleaved World Modeling and Planning for Autonomous Driving ... Robot Navigation via Active Scene Reconstruction and Visual ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048093705622574731" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">VLA 的未来：什么是机器人“元认知”？ - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... 今天我们就围绕这一点，来看看Mac Schwager 推荐的一篇ICLR 2026 新工作SARM: Stage-Aware Reward Modeling for Long Horizon Robot Manipulation。 什么是“元认知”. Meta- ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2049207405238563542" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">[浅调研] worldmodel 类VLA 模型 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        2天前 ... Video Prediction for Robot Actions（2511.07732，ICLR 2026）, CMU 等, 2025-11, 视频预测+ latent action. RynnVLA-002, 统一VLA + 世界模型（2511.17502）, 阿里DAMO ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047626576708245215" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">ROS 机械臂开发效率低？用Agent + 具身智能重构开发流程 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        6天前 ... 近两年，大模型、AI Agent、VLA（视觉-语言-动作）技术以及Embodied AI 技术持续推动机器人智能化发展。 机器人已经具备：. 自然语言理解; 多模态感知; 自主任务规划; 复杂动作 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047973860067239606" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">顶会最佳论文！ ICRA 2026 “夯”作给全球机器人研发指明三大技术 ...</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... 从相机几何条件化策略、扩散轨迹优化、3D 基础模型到人形全身运动生成、双臂VLA ... FP3: A 3D Foundation Policy for Robotic Manipulation（https://arxiv.org/abs ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047745767369085002" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Ego-Pi：面向Ego-Centric 人类数据的VLA微调 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        6天前 ... 它不是一个从零开始的全新模型，而是在已有视觉‑语言‑动作（VLA）模型π₀.₅ ... Robot (R). Category, # Demos, Mins, # Demos, Mins. Tomato Sort, 89, 13, 150, 60. Boxing ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048064494216147102" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">3D / world model / VLA 物理AI 模型AMD GPU 迁移Skill - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... ... robotics postprocess 等组件，而它们的默认生态几乎全是CUDA-first——README 假设NVIDIA GPU， requirements.txt pin 死CUDA wheel， pyproject.toml 默认拉 xformers ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047983437122998838" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">机器人需要的不仅是VLA 和World Model，还要把世界里的行为数据变 ...</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... 作者把缺失组件概括为四类：物理数据引擎与具身自标注、跨本体的任务保持重定向、面向后果预测的物理接地world model，以及能把部署反馈转回训练信号的reward grounding 闭环 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048067832160826764" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">李弘扬在CVPR 上分享的World Engine，可能就是华为说的WE - 知乎</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... ... Autonomous Driving》的演讲。其中主题就是采用WE(World Engine)世界引擎来仿真攻克自动驾驶长尾。 原文链接：李弘扬在CVPR 上分享的World Engine，可能就是华为说的WE.
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048085713321715152" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">强泛化强迁移VLA，上海创智学院×上海交大提出MINT</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... 机器人视觉语言动作（Vision-Language-Action, VLA）模型越来越多地开始展示叠衣服、倒茶、做咖啡等复杂操作。但是， 今天的大多数VLA 更像“展台机器人”。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048064133166376157" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">理想汽车CVPR 入选论文解读 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... ... Autonomous Driving with Impartial World Models. 论文标题：AD-R1: Closed-Loop Reinforcement Learning for End-to-End Autonomous Driving with Impartial World Models
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048740611394631080" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">生成预测四大权威榜单第一！ 开悟世界模型向全行业开源 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        3天前 ... 近日，大晓机器人开悟世界模型（Kairos）同时在RoboTwin 2.0、LIBERO-Plus、WorldModelBench Robot、DreamGen等全球针对世界模型视频生成和状态预测的权威具身智能评测中 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047355682840749458" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">论文周报|微软MAI-Thinking探索纯RL自我进化，AIME准确率达97 ...</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        7天前 ... 4. Qwen-VLA. 论文题目：. Qwen-VLA: Unifying Vision-Language-Action Modeling across Tasks, Environments, and Robot Embodiments. 具身智能研究长期依赖针对单一任务 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047659000074860201" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">τ0-WM、WLA、OSCAR 三篇新工作，正在把WAM 从“动作生成器”推 ...</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        6天前 ... 具身智能学习资料汇总： https://github.com/Xbotics-Embodied-AI-club/Xbotics-Embodied-Guide 具身智能求职/实习信息汇总： ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2049160557769631588" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">Agent终于长出了身体：Jiuwen Symbiosis背后的思考与实践 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        2天前 ... Embodied AI; Robotics Agent; VLA/VLM; World Model; Physical Intelligence; ROS2; Multi-Agent Systems. 欢迎加入openJiuwen社区，一起构建下一代物理世界的智能系统 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048707599260967656" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">IROS 2026 Workshop 征稿了！构建可扩展的机器人学习基础设施</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        3天前 ... Workshop 简介·近年来，视觉-语言-动作模型(VLA)、具身基础模型以及通用机器人学习系统快速发展，机器人正在从实验室演示走向更复杂、更开放的真实环境。
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2039024359751283170" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">【具身智能】2025~2026.3具身操作相关工作整理(2): 世界模型</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... 真实执行时，MotuBrain 将inference loop 和robot control loop 解耦：控制器持续执行当前action chunk，模型异步生成下一个chunk。为了减少chunk boundary 的action ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048095832512189710" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">误区澄清：具身智能真的只是「大模型+ 机器人」的简单拼接吗？ - 知乎</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        4天前 ... ... 机器人的底盘为例，详解移动底盘对比纯机械臂的优势，结合ROS2 生态、多款底盘方案与Mobile ALOHA 落地案例，讲解移动底盘如何支撑VLA 模型与机器人全域作业。 1.…
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047643496929088287" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">[分享][每日更新][2026.06.07][ArXiv CV Paper] - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        6天前 ... Code/Contribution: 提出FiberTune，解决VLA策略 ... Title: BLUE: Toward Better Language Use in Efficient Vision-Language-Action Models for Autonomous Driving
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047336979747037559" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">一文读懂Wall-OSS-0.5：预训练从初始化走向可执行行为</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        7天前 ... VLA 领域过去经常把预训练当作一个更好的初始化：模型先在大规模机器人数据上学一遍，真正能不能干活，还要看下游任务微调之后的结果。 这个评价方式绕开了一个更根本的 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048775056134780602" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">arxiv每日论文-计算机视觉2026-06-12 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        3天前 ... 代码将在论文被接受后发布。 [15] VLADriveBench: Evaluating CoT-Action Relationship in VLA for Autonomous DrivingVLADriveBench：评估自动驾驶视觉语言行动模型中 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2049096572194001230" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">具身智能Infra 专栏｜机器人训练场RoboTwin 2.0、RoboCasa365 和 ...</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        2天前 ... 具身智能学习资料汇总： https://github.com/Xbotics-Embodied-AI-club/Xbotics-Embodied-Guide 具身智能求职/实习信息汇总： ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048357107402123009" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">[分享][每日更新][2026.06.10][ArXiv CV Paper] - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        4天前 ... Title: DAM-VLA: Decoupled Asynchronous Multimodal Vision Language Action model ... Autonomous-Driving Perception Tests Title_cn: 从标称强度到等效降雨量 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2048062489951205224" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">吴新宙没有食言：Alpamayo 2 Super 来了，顺便摊开了NVIDIA 的L4 ...</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        5天前 ... 上周，我们在台北的GTC 现场，等到了这句话的答案。 Alpamayo 2 Super 正式公布。一个320 亿参数的开放推理VLA，还有OmniDreams 的世界模型。 NVIDIA没有食言。 原文 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://www.zhihu.com/pin/2049048427057698495" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">PnP机器人的想法: NVIDIA新研究让AI自动生成3D场景 - 知乎</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        3天前 ... 论文：SAGE: Scalable Agentic 3D Scene Generation for Embodied AI. 用AI规模化生成物理可信、语义合理、可直接仿真的3D场景，打通世界模型、仿真环境、机器人训练的 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2040778645896171799" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">端到端自动驾驶「最强论文追踪器」来了！NAVSIM Benchmark 全收录</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        1天前 ... Awesome-End-to-End-Autonomous-Driving 是一个围绕NAVSIM Benchmark 构建的端 ... VLA (Vision-Language-Action), DriveWorld-VLA、AutoVLA、LatentVLA、VGGDrive.
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+              <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                      <a href="https://zhuanlan.zhihu.com/p/2047460564281061837" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 1rem; line-height: 1.5; word-wrap: break-word; display: block;">具身机器人行业浅析 - 知乎专栏</a>
+                      
+                    </div>
+                    
+                    
+                      <div style="font-size:0.9rem;color:#374151;margin-top:0.5rem;line-height:1.6;padding:0.75rem;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0.375rem;">
+                        7天前 ... 一、定义与认知：什么是具身智能？具身智能（Embodied AI）不同于传统人工智能的核心在于，智能体（机器人、无人机、智能汽车等）通过与物理世界的实时身体交互，实现感知、认 ...
+                      </div>
+                    
+                  </div>
+                </div>
+              </li>
+            
+          </ul>
+        
+      </article>
+    
+  
+
+      </main>
+      <aside class="sidebar sidebar-right">
+        <h3>时间线</h3>
+        <ul id="week-timeline">
+          
+            <li>
+              <a href="2026-08-31.html" class="week-link " data-week="2026-08-31">
+                2026-08-31 ~ 2026-09-06
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-08-24.html" class="week-link " data-week="2026-08-24">
+                2026-08-24 ~ 2026-08-30
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-08-17.html" class="week-link " data-week="2026-08-17">
+                2026-08-17 ~ 2026-08-23
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-08-10.html" class="week-link " data-week="2026-08-10">
+                2026-08-10 ~ 2026-08-16
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-08-03.html" class="week-link " data-week="2026-08-03">
+                2026-08-03 ~ 2026-08-09
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-07-27.html" class="week-link " data-week="2026-07-27">
+                2026-07-27 ~ 2026-08-02
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-07-20.html" class="week-link " data-week="2026-07-20">
+                2026-07-20 ~ 2026-07-26
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-07-13.html" class="week-link " data-week="2026-07-13">
+                2026-07-13 ~ 2026-07-19
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-07-06.html" class="week-link " data-week="2026-07-06">
+                2026-07-06 ~ 2026-07-12
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-06-29.html" class="week-link " data-week="2026-06-29">
+                2026-06-29 ~ 2026-07-05
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-06-22.html" class="week-link " data-week="2026-06-22">
+                2026-06-22 ~ 2026-06-28
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-06-15.html" class="week-link " data-week="2026-06-15">
+                2026-06-15 ~ 2026-06-21
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-06-08.html" class="week-link active" data-week="2026-06-08">
+                2026-06-08 ~ 2026-06-14
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-06-01.html" class="week-link " data-week="2026-06-01">
+                2026-06-01 ~ 2026-06-07
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-05-25.html" class="week-link " data-week="2026-05-25">
+                2026-05-25 ~ 2026-05-31
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-05-18.html" class="week-link " data-week="2026-05-18">
+                2026-05-18 ~ 2026-05-24
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-05-11.html" class="week-link " data-week="2026-05-11">
+                2026-05-11 ~ 2026-05-17
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-05-04.html" class="week-link " data-week="2026-05-04">
+                2026-05-04 ~ 2026-05-10
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-04-27.html" class="week-link " data-week="2026-04-27">
+                2026-04-27 ~ 2026-05-03
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-04-20.html" class="week-link " data-week="2026-04-20">
+                2026-04-20 ~ 2026-04-26
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-04-13.html" class="week-link " data-week="2026-04-13">
+                2026-04-13 ~ 2026-04-19
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-04-06.html" class="week-link " data-week="2026-04-06">
+                2026-04-06 ~ 2026-04-12
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-03-30.html" class="week-link " data-week="2026-03-30">
+                2026-03-30 ~ 2026-04-05
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-03-23.html" class="week-link " data-week="2026-03-23">
+                2026-03-23 ~ 2026-03-29
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-03-16.html" class="week-link " data-week="2026-03-16">
+                2026-03-16 ~ 2026-03-22
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-03-09.html" class="week-link " data-week="2026-03-09">
+                2026-03-09 ~ 2026-03-15
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-03-02.html" class="week-link " data-week="2026-03-02">
+                2026-03-02 ~ 2026-03-08
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-02-23.html" class="week-link " data-week="2026-02-23">
+                2026-02-23 ~ 2026-03-01
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-02-16.html" class="week-link " data-week="2026-02-16">
+                2026-02-16 ~ 2026-02-22
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-02-09.html" class="week-link " data-week="2026-02-09">
+                2026-02-09 ~ 2026-02-15
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-02-02.html" class="week-link " data-week="2026-02-02">
+                2026-02-02 ~ 2026-02-08
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-01-26.html" class="week-link " data-week="2026-01-26">
+                2026-01-26 ~ 2026-02-01
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-01-19.html" class="week-link " data-week="2026-01-19">
+                2026-01-19 ~ 2026-01-25
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-01-12.html" class="week-link " data-week="2026-01-12">
+                2026-01-12 ~ 2026-01-18
+              </a>
+            </li>
+          
+            <li>
+              <a href="2026-01-05.html" class="week-link " data-week="2026-01-05">
+                2026-01-05 ~ 2026-01-11
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-29.html" class="week-link " data-week="2025-12-29">
+                2025-12-29 ~ 2026-01-04
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-22.html" class="week-link " data-week="2025-12-22">
+                2025-12-22 ~ 2025-12-28
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-15.html" class="week-link " data-week="2025-12-15">
+                2025-12-15 ~ 2025-12-21
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-08.html" class="week-link " data-week="2025-12-08">
+                2025-12-08 ~ 2025-12-14
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-12-01.html" class="week-link " data-week="2025-12-01">
+                2025-12-01 ~ 2025-12-07
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-24.html" class="week-link " data-week="2025-11-24">
+                2025-11-24 ~ 2025-11-30
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-17.html" class="week-link " data-week="2025-11-17">
+                2025-11-17 ~ 2025-11-23
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-10.html" class="week-link " data-week="2025-11-10">
+                2025-11-10 ~ 2025-11-16
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-11-03.html" class="week-link " data-week="2025-11-03">
+                2025-11-03 ~ 2025-11-09
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-27.html" class="week-link " data-week="2025-10-27">
+                2025-10-27 ~ 2025-11-02
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-20.html" class="week-link " data-week="2025-10-20">
+                2025-10-20 ~ 2025-10-26
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-13.html" class="week-link " data-week="2025-10-13">
+                2025-10-13 ~ 2025-10-19
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-10-06.html" class="week-link " data-week="2025-10-06">
+                2025-10-06 ~ 2025-10-12
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-09-29.html" class="week-link " data-week="2025-09-29">
+                2025-09-29 ~ 2025-10-05
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-09-22.html" class="week-link " data-week="2025-09-22">
+                2025-09-22 ~ 2025-09-28
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-09-15.html" class="week-link " data-week="2025-09-15">
+                2025-09-15 ~ 2025-09-21
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-09-08.html" class="week-link " data-week="2025-09-08">
+                2025-09-08 ~ 2025-09-14
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-09-01.html" class="week-link " data-week="2025-09-01">
+                2025-09-01 ~ 2025-09-07
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-08-25.html" class="week-link " data-week="2025-08-25">
+                2025-08-25 ~ 2025-08-31
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-08-18.html" class="week-link " data-week="2025-08-18">
+                2025-08-18 ~ 2025-08-24
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-08-11.html" class="week-link " data-week="2025-08-11">
+                2025-08-11 ~ 2025-08-17
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-08-04.html" class="week-link " data-week="2025-08-04">
+                2025-08-04 ~ 2025-08-10
+              </a>
+            </li>
+          
+            <li>
+              <a href="2025-07-28.html" class="week-link " data-week="2025-07-28">
+                2025-07-28 ~ 2025-08-03
+              </a>
+            </li>
+          
+        </ul>
+      </aside>
+    </div>
+    <footer>
+      数据来源于 Google 搜索结果，仅供学习与研究使用。
+    </footer>
+  </body>
+</html>
